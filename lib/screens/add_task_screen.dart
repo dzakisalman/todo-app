@@ -5,34 +5,34 @@ import '../models/task_model.dart';
 
 class AddTaskScreen extends StatefulWidget {
   @override
-  _AddTaskScreenState createState() => _AddTaskScreenState();
+  AddTaskScreenState createState() => AddTaskScreenState();
 }
 
-class _AddTaskScreenState extends State<AddTaskScreen> {
-  final TextEditingController _titleController = TextEditingController();
-  TimeOfDay _selectedTime = TimeOfDay.now();
-  bool _isButtonEnabled = false;
+class AddTaskScreenState extends State<AddTaskScreen> {
+  final TextEditingController titleController = TextEditingController();
+  TimeOfDay selectedTime = TimeOfDay.now();
+  bool isButtonEnabled = false;
 
   @override
   void initState() {
     super.initState();
-    _titleController.addListener(_updateButtonState);
+    titleController.addListener(updateButtonState);
   }
 
   @override
   void dispose() {
-    _titleController.removeListener(_updateButtonState);
-    _titleController.dispose();
+    titleController.removeListener(updateButtonState);
+    titleController.dispose();
     super.dispose();
   }
 
-  void _updateButtonState() {
+  void updateButtonState() {
     setState(() {
-      _isButtonEnabled = _titleController.text.isNotEmpty;
+      isButtonEnabled = titleController.text.isNotEmpty;
     });
   }
 
-  Future<void> _selectTime() async {
+  Future<void> selectTime() async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -74,7 +74,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                               child: Text(
                                 hour,
                                 style: TextStyle(
-                                  color: hour == _selectedTime.hour.toString().padLeft(2, '0')
+                                  color: hour == selectedTime.hour.toString().padLeft(2, '0')
                                       ? Colors.white
                                       : Colors.white.withOpacity(0.5),
                                   fontSize: 24,
@@ -84,9 +84,9 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           }),
                           onSelectedItemChanged: (index) {
                             setState(() {
-                              _selectedTime = TimeOfDay(
+                              selectedTime = TimeOfDay(
                                 hour: index,
-                                minute: _selectedTime.minute,
+                                minute: selectedTime.minute,
                               );
                             });
                           },
@@ -113,7 +113,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                               child: Text(
                                 minute,
                                 style: TextStyle(
-                                  color: minute == _selectedTime.minute.toString().padLeft(2, '0')
+                                  color: minute == selectedTime.minute.toString().padLeft(2, '0')
                                       ? Colors.white
                                       : Colors.white.withOpacity(0.5),
                                   fontSize: 24,
@@ -123,8 +123,8 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                           }),
                           onSelectedItemChanged: (index) {
                             setState(() {
-                              _selectedTime = TimeOfDay(
-                                hour: _selectedTime.hour,
+                              selectedTime = TimeOfDay(
+                                hour: selectedTime.hour,
                                 minute: index,
                               );
                             });
@@ -172,11 +172,11 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   void _addTask() {
-    if (_titleController.text.isEmpty) return;
+    if (titleController.text.isEmpty) return;
 
     final newTask = TaskModel(
-      title: _titleController.text,
-      time: '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+      title: titleController.text,
+      time: '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
     );
 
     Provider.of<TaskProvider>(context, listen: false).addTask(newTask);
@@ -190,7 +190,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            _buildHeader(),
+            buildHeader(),
             Expanded(
               child: Container(
                 padding: EdgeInsets.all(20),
@@ -215,7 +215,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                     ),
                     SizedBox(height: 10),
                     TextField(
-                      controller: _titleController,
+                      controller: titleController,
                       decoration: InputDecoration(
                         hintText: 'Masukkan judul tugas',
                         filled: true,
@@ -241,7 +241,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                     ),
                     SizedBox(height: 10),
                     InkWell(
-                      onTap: _selectTime,
+                      onTap: selectTime,
                       child: Container(
                         padding: EdgeInsets.symmetric(
                           horizontal: 20,
@@ -259,7 +259,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                             ),
                             SizedBox(width: 10),
                             Text(
-                              '${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')}',
+                              '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
                               style: TextStyle(
                                 fontSize: 16,
                                 color: Colors.black87,
@@ -274,7 +274,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
                       width: double.infinity,
                       height: 55,
                       child: ElevatedButton(
-                        onPressed: _isButtonEnabled ? _addTask : null,
+                        onPressed: isButtonEnabled ? _addTask : null,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Color(0xFFFF7B54),
                           shape: RoundedRectangleBorder(
@@ -302,7 +302,7 @@ class _AddTaskScreenState extends State<AddTaskScreen> {
     );
   }
 
-  Widget _buildHeader() {
+  Widget buildHeader() {
     return Padding(
       padding: EdgeInsets.all(20),
       child: Row(

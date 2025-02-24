@@ -16,7 +16,7 @@ class HomeScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildAppBar(),
-                _buildHeader(),
+                buildHeader(),
                 SizedBox(height: 30),
                 Expanded(
                   child: Container(
@@ -43,15 +43,18 @@ class HomeScreen extends StatelessWidget {
               ],
             ),
           ),
-          floatingActionButton: FloatingActionButton(
-            backgroundColor: Color(0xFFFF7B54),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => AddTaskScreen()),
-              );
-            },
-            child: Icon(Icons.add, color: Colors.white),
+          floatingActionButton: Padding(
+            padding: const EdgeInsets.only(bottom: 40.0,),
+            child: FloatingActionButton(
+              backgroundColor: Color(0xFFFF7B54),
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => AddTaskScreen()),
+                );
+              },
+              child: Icon(Icons.add, color: Colors.white),
+            ),
           ),
           floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
         );
@@ -86,7 +89,7 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeader() {
+  Widget buildHeader() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),
       child: Column(

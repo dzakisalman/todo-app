@@ -7,23 +7,23 @@ class DetailScreen extends StatefulWidget {
   DetailScreen({required this.task});
 
   @override
-  _DetailScreenState createState() => _DetailScreenState();
+  DetailScreenState createState() => DetailScreenState();
 }
 
-class _DetailScreenState extends State<DetailScreen> {
-  late TimeOfDay _selectedTime;
+class DetailScreenState extends State<DetailScreen> {
+  late TimeOfDay selectedTime;
 
   @override
   void initState() {
     super.initState();
-    _parseTimeFromTask();
+    parseTimeFromTask();
   }
 
-  void _parseTimeFromTask() {
-    _selectedTime = TimeOfDay(hour: 22, minute: 45); // Hardcoded sesuai gambar
+  void parseTimeFromTask() {
+    selectedTime = TimeOfDay(hour: 22, minute: 45); // Hardcoded sesuai gambar
   }
 
-  Future<void> _selectTime() async {
+  Future<void> selectTime() async {
     showModalBottomSheet(
       context: context,
       shape: RoundedRectangleBorder(
@@ -65,9 +65,9 @@ class _DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _buildTimePicker(24, _selectedTime.hour, (value) {
+                  buildTimePicker(24, selectedTime.hour, (value) {
                     setState(() {
-                      _selectedTime = TimeOfDay(hour: value, minute: _selectedTime.minute);
+                      selectedTime = TimeOfDay(hour: value, minute: selectedTime.minute);
                     });
                   }),
                   Padding(
@@ -81,9 +81,9 @@ class _DetailScreenState extends State<DetailScreen> {
                       ),
                     ),
                   ),
-                  _buildTimePicker(60, _selectedTime.minute, (value) {
+                  buildTimePicker(60, selectedTime.minute, (value) {
                     setState(() {
-                      _selectedTime = TimeOfDay(hour: _selectedTime.hour, minute: value);
+                      selectedTime = TimeOfDay(hour: selectedTime.hour, minute: value);
                     });
                   }),
                 ],
@@ -92,8 +92,8 @@ class _DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  _buildButton("Cancel", Colors.blue.shade700, () => Navigator.pop(context)),
-                  _buildButton("Save", Colors.orange, () {
+                  buildButton("Cancel", Colors.blue.shade700, () => Navigator.pop(context)),
+                  buildButton("Save", Colors.orange, () {
                     Navigator.pop(context, true);
                   }),
                 ],
@@ -105,13 +105,14 @@ class _DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  Widget _buildTimePicker(int max, int selectedValue, Function(int) onSelected) {
+  Widget buildTimePicker(int max, int selectedValue, Function(int) onSelected) {
     return Container(
       width: 60,
       height: 180,
       child: ListWheelScrollView(
         itemExtent: 50,
         physics: FixedExtentScrollPhysics(),
+        onSelectedItemChanged: onSelected,
         children: List.generate(max, (index) {
           return Center(
             child: Text(
@@ -124,12 +125,11 @@ class _DetailScreenState extends State<DetailScreen> {
             ),
           );
         }),
-        onSelectedItemChanged: onSelected,
       ),
     );
   }
 
-  Widget _buildButton(String text, Color color, VoidCallback onPressed) {
+  Widget buildButton(String text, Color color, VoidCallback onPressed) {
     return ElevatedButton(
       onPressed: onPressed,
       style: ElevatedButton.styleFrom(
@@ -185,12 +185,12 @@ class _DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildInfoItem(Icons.calendar_today, "24/11/2019", "Date"),
+                  buildInfoItem(Icons.calendar_today, "24/11/2019", "Date"),
                   GestureDetector(
-                    onTap: _selectTime,
-                    child: _buildInfoItem(
+                    onTap: selectTime,
+                    child: buildInfoItem(
                       Icons.access_time,
-                      "${_selectedTime.hour.toString().padLeft(2, '0')}:${_selectedTime.minute.toString().padLeft(2, '0')} WIB",
+                      "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')} WIB",
                       "Time"
                     ),
                   ),
@@ -201,8 +201,8 @@ class _DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  _buildInfoItem(Icons.category, "Travel", "Category"),
-                  _buildInfoItem(Icons.location_on, "Sukabumi", "Location"),
+                  buildInfoItem(Icons.category, "Travel", "Category"),
+                  buildInfoItem(Icons.location_on, "Sukabumi", "Location"),
                 ],
               ),
             ],
@@ -213,8 +213,7 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 }
 
-// Helper untuk menampilkan informasi tambahan
-Widget _buildInfoItem(IconData icon, String value, String label) {
+Widget buildInfoItem(IconData icon, String value, String label) {
   return Row(
     children: [
       Icon(icon, color: Colors.blue, size: 20),
