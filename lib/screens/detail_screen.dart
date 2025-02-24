@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/task_model.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -20,16 +21,20 @@ class DetailScreenState extends State<DetailScreen> {
   }
 
   void parseTimeFromTask() {
-    selectedTime = TimeOfDay(hour: 22, minute: 45); // Hardcoded sesuai gambar
+    selectedTime = TimeOfDay(
+      hour: int.parse(widget.task.time.split(":")[0]),
+      minute: int.parse(widget.task.time.split(":")[1]),
+    );
   }
 
   Future<void> selectTime() async {
     showModalBottomSheet(
+      barrierColor: Colors.transparent,
       context: context,
+      isScrollControlled: true,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
       ),
-      backgroundColor: Colors.transparent,
       builder: (context) {
         return Container(
           padding: EdgeInsets.all(20),
@@ -67,7 +72,8 @@ class DetailScreenState extends State<DetailScreen> {
                 children: [
                   buildTimePicker(24, selectedTime.hour, (value) {
                     setState(() {
-                      selectedTime = TimeOfDay(hour: value, minute: selectedTime.minute);
+                      selectedTime =
+                          TimeOfDay(hour: value, minute: selectedTime.minute);
                     });
                   }),
                   Padding(
@@ -83,7 +89,8 @@ class DetailScreenState extends State<DetailScreen> {
                   ),
                   buildTimePicker(60, selectedTime.minute, (value) {
                     setState(() {
-                      selectedTime = TimeOfDay(hour: selectedTime.hour, minute: value);
+                      selectedTime =
+                          TimeOfDay(hour: selectedTime.hour, minute: value);
                     });
                   }),
                 ],
@@ -92,7 +99,8 @@ class DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  buildButton("Cancel", Colors.blue.shade700, () => Navigator.pop(context)),
+                  buildButton("Cancel", Colors.blue.shade700,
+                      () => Navigator.pop(context)),
                   buildButton("Save", Colors.orange, () {
                     Navigator.pop(context, true);
                   }),
@@ -118,7 +126,9 @@ class DetailScreenState extends State<DetailScreen> {
             child: Text(
               index.toString().padLeft(2, '0'),
               style: TextStyle(
-                color: index == selectedValue ? Colors.white : Colors.white.withOpacity(0.5),
+                color: index == selectedValue
+                    ? Colors.white
+                    : Colors.white.withOpacity(0.5),
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
               ),
@@ -141,7 +151,8 @@ class DetailScreenState extends State<DetailScreen> {
       ),
       child: Text(
         text,
-        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -153,35 +164,51 @@ class DetailScreenState extends State<DetailScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-          onPressed: () => Navigator.pop(context),
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 24),
+          child: IconButton(
+            icon: Icon(Icons.arrow_back_ios, color: Colors.black),
+            onPressed: () => Navigator.pop(context),
+          ),
         ),
         actions: [
-          IconButton(
-            icon: Icon(Icons.more_horiz, color: Colors.black),
-            onPressed: () {},
+          Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: IconButton(
+              icon: Icon(Icons.more_horiz, color: Colors.black),
+              onPressed: () {},
+            ),
           ),
         ],
       ),
       body: SingleChildScrollView(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 20),
+          padding: EdgeInsets.symmetric(horizontal: 35),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                "Piknik ke Pantai Selatan",
+                widget.task.title,
                 style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold),
               ),
-              SizedBox(height: 8),
-
+              SizedBox(height: 10),
               Text(
                 "Ipsum dolor sit amet, consectetur acide tempor adscing sed do eiusmod tempor magna",
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               ),
-              SizedBox(height: 16),
-
+              SizedBox(height: 30),
+              SizedBox(
+                width: 30,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border(
+                      bottom: BorderSide(color: Color(0xFFff8b60), width: 5),
+                    ),
+                    borderRadius: BorderRadius.all(Radius.circular(5)),
+                  ),
+                ),
+              ),
+              SizedBox(height: 30),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -189,15 +216,13 @@ class DetailScreenState extends State<DetailScreen> {
                   GestureDetector(
                     onTap: selectTime,
                     child: buildInfoItem(
-                      Icons.access_time,
-                      "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')} WIB",
-                      "Time"
-                    ),
+                        Icons.access_time,
+                        "${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')} WIB",
+                        "Time"),
                   ),
                 ],
               ),
-              SizedBox(height: 12),
-
+              SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -221,7 +246,8 @@ Widget buildInfoItem(IconData icon, String value, String label) {
       Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(value, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+          Text(value,
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
           Text(label, style: TextStyle(fontSize: 14, color: Colors.grey)),
         ],
       ),

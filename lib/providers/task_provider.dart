@@ -29,7 +29,6 @@ class TaskProvider with ChangeNotifier {
 
       final prefs = await SharedPreferences.getInstance();
       final String? taskData = prefs.getString(TASKS_KEY);
-      
       if (taskData != null) {
         List<dynamic> decodedData = jsonDecode(taskData);
         _tasks = decodedData.map((e) => TaskModel.fromJson(e as Map<String, dynamic>)).toList();

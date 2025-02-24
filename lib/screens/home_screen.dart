@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+
 import '../providers/task_provider.dart';
 import 'add_task_screen.dart';
 import 'detail_screen.dart';
@@ -44,7 +45,9 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           floatingActionButton: Padding(
-            padding: const EdgeInsets.only(bottom: 40.0,),
+            padding: const EdgeInsets.only(
+              bottom: 40.0,
+            ),
             child: FloatingActionButton(
               backgroundColor: Color(0xFFFF7B54),
               onPressed: () {
@@ -121,7 +124,7 @@ class HomeScreen extends StatelessWidget {
               style: TextStyle(color: Colors.white),
               decoration: InputDecoration(
                 border: InputBorder.none,
-                icon: Icon(Icons.search, color: Colors.white54),
+                suffixIcon: Icon(Icons.search, color: Colors.white54),
                 hintText: "Cari...",
                 hintStyle: TextStyle(color: Colors.white54),
               ),
@@ -133,17 +136,36 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildTodayHeader() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Column(
       children: [
-        Text(
-          "Today",
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              "Today",
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Icon(Icons.sort),
+          ],
+        ),
+        Align(
+          heightFactor: 3,
+          alignment: Alignment.centerLeft,
+          child: SizedBox(
+            width: 30,
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(color: Color(0xFFff8b60), width: 3),
+                ),
+                borderRadius: BorderRadius.all(Radius.circular(5)),
+              ),
+            ),
           ),
         ),
-        Icon(Icons.sort),
       ],
     );
   }
@@ -209,7 +231,8 @@ class HomeScreen extends StatelessWidget {
                       },
                     ),
                     TextButton(
-                      child: Text('Delete', style: TextStyle(color: Colors.red)),
+                      child:
+                          Text('Delete', style: TextStyle(color: Colors.red)),
                       onPressed: () {
                         taskProvider.removeTask(index);
                         Navigator.of(context).pop();
@@ -270,7 +293,8 @@ class HomeScreen extends StatelessWidget {
                   child: Checkbox(
                     value: task.isCompleted,
                     onChanged: (bool? value) async {
-                      await taskProvider.toggleTaskCompletion(index, context);},
+                      await taskProvider.toggleTaskCompletion(index, context);
+                    },
                     shape: CircleBorder(),
                     activeColor: Colors.green,
                   ),
