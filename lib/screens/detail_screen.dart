@@ -15,7 +15,9 @@ class DetailScreen extends StatefulWidget {
 }
 
 class DetailScreenState extends State<DetailScreen> {
-  late TimeOfDay selectedTime; String? imagePath;
+  late TimeOfDay selectedTime;
+  String? imagePath;
+  bool isLoadingImage = false;
 
   @override
   void initState() {
@@ -24,11 +26,15 @@ class DetailScreenState extends State<DetailScreen> {
     _loadImagePath();
   }
   Future<void> _loadImagePath() async {
+    setState(() {
+      isLoadingImage = true;
+    });
+
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? loadedPath = prefs.getString('imagePath_${widget.task.id}');
 
   if (loadedPath != null && File(loadedPath).existsSync()) {
-    print('Loaded imagePath for task ${widget.task.id}: $loadedPath'); // Debugging
+      print('Loaded imagePath for task ${widget.task.id}: $loadedPath');
     setState(() {
       imagePath = loadedPath;
     });
@@ -38,18 +44,32 @@ class DetailScreenState extends State<DetailScreen> {
       imagePath = null;
     });
   }
+
+    setState(() {
+      isLoadingImage = false;
+    });
 }
 
 
   void parseTimeFromTask() {
+    try {
+      List<String> timeParts = widget.task.time.split(":");
+      if (timeParts.length == 2) {
     selectedTime = TimeOfDay(
-      hour: int.parse(widget.task.time.split(":")[0]),
-      minute: int.parse(widget.task.time.split(":")[1]),
+          hour: int.parse(timeParts[0]),
+          minute: int.parse(timeParts[1]),
     );
+      } else {
+        selectedTime = TimeOfDay.now();
+      }
+    } catch (e) {
+      print("Error parsing time: $e");
+      selectedTime = TimeOfDay.now();
+    }
   }
 
   Future<void> selectTime() async {
-    showModalBottomSheet(
+    final bool? result = await showModalBottomSheet(
       barrierColor: Colors.transparent,
       context: context,
       isScrollControlled: true,
@@ -132,6 +152,12 @@ class DetailScreenState extends State<DetailScreen> {
         );
       },
     );
+
+    if (result == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Waktu berhasil diubah')),
+      );
+    }
   }
 
   Widget buildTimePicker(int max, int selectedValue, Function(int) onSelected) {
@@ -251,8 +277,11 @@ class DetailScreenState extends State<DetailScreen> {
                   buildInfoItem(Icons.location_on, "Sukabumi", "Location"),
                 ],
               ),
+              SizedBox(height: 20),
               Center(
-                child: imagePath != null
+                child: isLoadingImage
+                    ? CircularProgressIndicator()
+                    : imagePath != null
                     ? Image.file(File(imagePath!))
                     : Text('No image found'),
               ),
