@@ -13,7 +13,7 @@ class TaskProvider with ChangeNotifier {
   static const int MAX_RETRY_ATTEMPTS = 3;
 
   List<TaskModel> _tasks = [];
-  bool _isLoading = false;  // Initialize as false
+  bool _isLoading = false;
   String? _error;
 
   List<TaskModel> get tasks => _tasks;
@@ -83,6 +83,12 @@ class TaskProvider with ChangeNotifier {
   }
 
   Future<void> addTask(TaskModel task) async {
+    if (task.title.isEmpty || task.time.isEmpty) {
+      _error = 'Title and time cannot be empty';
+      notifyListeners();
+      return;
+    }
+
     _tasks.add(task);
     await _saveTasks();
     await _saveImagePath(task.id, task.imagePath!);
@@ -99,10 +105,12 @@ class TaskProvider with ChangeNotifier {
     try {
       await Gal.putImage(imagePath);
     } catch (e) {
-      print("Failed to save image to gallery: $e");
+        _error = 'Failed to save image to gallery: $e';
+        notifyListeners();
     }
   } else {
-    print("Storage permission denied");
+      _error = 'Storage permission denied';
+      notifyListeners();
   }
 }
   Future<void> _saveImagePath(String taskId, String path) async {
@@ -114,7 +122,7 @@ class TaskProvider with ChangeNotifier {
 
   Future<String?> getImagePath(String taskId) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('imagePath_$taskId'); // Retrieve image based on task ID
+    return prefs.getString('imagePath_$taskId');
   }
 
   Future<void> removeTask(int index) async {

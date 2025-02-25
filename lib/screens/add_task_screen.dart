@@ -40,7 +40,7 @@ class AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Future<void> selectTime() async {
-    showDialog(
+    final bool? result = await showDialog(
       context: context,
       builder: (BuildContext context) {
         return Dialog(
@@ -183,6 +183,10 @@ class AddTaskScreenState extends State<AddTaskScreen> {
         );
       },
     );
+
+    if (result == true) {
+      setState(() {});
+    }
   }
 
   Future<void> _pickImage() async {
@@ -212,6 +216,11 @@ class AddTaskScreenState extends State<AddTaskScreen> {
     final XFile? image = await _picker.pickImage(source: ImageSource.camera);
 
     if (image != null) {
+      await _processImage(image);
+    }
+  }
+
+  Future<void> _processImage(XFile image) async {
       File imageFile = File(image.path);
       try {
         await Gal.putImage(image.path);
@@ -223,19 +232,18 @@ class AddTaskScreenState extends State<AddTaskScreen> {
       } catch (e) {
         print("Error saving image to gallery: $e");
       }
-      setState(() {
-        _selectedImage = imageFile;
-      });
-    }
   }
 
   void _addTask() {
-    if (titleController.text.isEmpty) return;
-    if (_selectedImage != null) {
-      _imagePath = _selectedImage?.path;
+    if (titleController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Judul tugas tidak boleh kosong')),
+      );
+      return;
     }
+
     final newTask = TaskModel(
-      id: 'some_unique_id',
+      id: DateTime.now().toString(), // Generate unique ID
       title: titleController.text,
       time:
           '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
