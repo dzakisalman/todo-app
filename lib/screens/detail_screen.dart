@@ -1,5 +1,8 @@
-import 'package:flutter/material.dart';
+import 'dart:core';
+import 'dart:io';
 
+import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../models/task_model.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -12,13 +15,31 @@ class DetailScreen extends StatefulWidget {
 }
 
 class DetailScreenState extends State<DetailScreen> {
-  late TimeOfDay selectedTime;
+  late TimeOfDay selectedTime; String? imagePath;
 
   @override
   void initState() {
     super.initState();
     parseTimeFromTask();
+    _loadImagePath();
   }
+  Future<void> _loadImagePath() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    String? loadedPath = prefs.getString('imagePath_${widget.task.id}');
+
+  if (loadedPath != null && File(loadedPath).existsSync()) {
+    print('Loaded imagePath for task ${widget.task.id}: $loadedPath'); // Debugging
+    setState(() {
+      imagePath = loadedPath;
+    });
+  } else {
+    print('No valid image found for task ${widget.task.id}');
+    setState(() {
+      imagePath = null;
+    });
+  }
+}
+
 
   void parseTimeFromTask() {
     selectedTime = TimeOfDay(
@@ -229,6 +250,11 @@ class DetailScreenState extends State<DetailScreen> {
                   buildInfoItem(Icons.category, "Travel", "Category"),
                   buildInfoItem(Icons.location_on, "Sukabumi", "Location"),
                 ],
+              ),
+              Center(
+                child: imagePath != null
+                    ? Image.file(File(imagePath!))
+                    : Text('No image found'),
               ),
             ],
           ),

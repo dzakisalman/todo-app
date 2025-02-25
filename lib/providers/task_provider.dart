@@ -3,6 +3,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/task_model.dart';
 import '../screens/completion_screen.dart';
+import 'package:gal/gal.dart';
+import 'package:permission_handler/permission_handler.dart';
+
+
 
 class TaskProvider with ChangeNotifier {
   static const String TASKS_KEY = 'tasks';
@@ -81,7 +85,36 @@ class TaskProvider with ChangeNotifier {
   Future<void> addTask(TaskModel task) async {
     _tasks.add(task);
     await _saveTasks();
+    await _saveImagePath(task.id, task.imagePath!);
+
+    if (task.imagePath != null) {
+      await _saveImagePath(task.id, task.imagePath!);
+      await _saveImageToGallery(task.imagePath!);
+    }
+
     notifyListeners();
+  }
+  Future<void> _saveImageToGallery(String imagePath) async {
+  if (await Permission.storage.request().isGranted) {
+    try {
+      await Gal.putImage(imagePath);
+    } catch (e) {
+      print("Failed to save image to gallery: $e");
+    }
+  } else {
+    print("Storage permission denied");
+  }
+}
+  Future<void> _saveImagePath(String taskId, String path) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+  print('Saving ImagePath for Task ID: $taskId -> Path: $path'); // Debugging
+    await prefs.setString('imagePath_$taskId', path);
+  print('Saved ImagePath: ${prefs.getString('imagePath_$taskId')}'); // Debugging
+  }
+
+  Future<String?> getImagePath(String taskId) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    return prefs.getString('imagePath_$taskId'); // Retrieve image based on task ID
   }
 
   Future<void> removeTask(int index) async {
@@ -95,4 +128,12 @@ class TaskProvider with ChangeNotifier {
   Future<void> retryLoadTasks() async {
     await _loadTasks();
   }
+}
+
+void debugSharedPreferences() async {
+  SharedPreferences prefs = await SharedPreferences.getInstance();
+  print('All stored keys in SharedPreferences: ${prefs.getKeys()}');
+  prefs.getKeys().forEach((key) {
+    print('$key: ${prefs.get(key)}');
+  });
 }

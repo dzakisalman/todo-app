@@ -1,7 +1,12 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:gal/gal.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../providers/task_provider.dart';
+
 import '../models/task_model.dart';
+import '../providers/task_provider.dart';
 
 class AddTaskScreen extends StatefulWidget {
   @override
@@ -12,6 +17,8 @@ class AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController titleController = TextEditingController();
   TimeOfDay selectedTime = TimeOfDay.now();
   bool isButtonEnabled = false;
+  File? _selectedImage;
+  String? _imagePath;
 
   @override
   void initState() {
@@ -74,7 +81,10 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                               child: Text(
                                 hour,
                                 style: TextStyle(
-                                  color: hour == selectedTime.hour.toString().padLeft(2, '0')
+                                  color: hour ==
+                                          selectedTime.hour
+                                              .toString()
+                                              .padLeft(2, '0')
                                       ? Colors.white
                                       : Colors.white.withOpacity(0.5),
                                   fontSize: 24,
@@ -113,7 +123,10 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                               child: Text(
                                 minute,
                                 style: TextStyle(
-                                  color: minute == selectedTime.minute.toString().padLeft(2, '0')
+                                  color: minute ==
+                                          selectedTime.minute
+                                              .toString()
+                                              .padLeft(2, '0')
                                       ? Colors.white
                                       : Colors.white.withOpacity(0.5),
                                   fontSize: 24,
@@ -150,7 +163,8 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                         Navigator.pop(context, true);
                       },
                       child: Container(
-                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        padding:
+                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
                         decoration: BoxDecoration(
                           color: Color(0xFFFF7B54),
                           borderRadius: BorderRadius.circular(20),
@@ -171,12 +185,61 @@ class AddTaskScreenState extends State<AddTaskScreen> {
     );
   }
 
+  Future<void> _pickImage() async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+
+    if (image != null) {
+      File imageFile = File(image.path);
+      try {
+        await Gal.putImage(image.path);
+        setState(() {
+          _selectedImage = imageFile;
+          _imagePath = image.path;
+        });
+        print("Image path: $_imagePath");
+      } catch (e) {
+        print("Error saving image to gallery: $e");
+      }
+      setState(() {
+        _selectedImage = imageFile;
+      });
+    }
+  }
+
+  Future<void> _takePhoto() async {
+    final ImagePicker _picker = ImagePicker();
+    final XFile? image = await _picker.pickImage(source: ImageSource.camera);
+
+    if (image != null) {
+      File imageFile = File(image.path);
+      try {
+        await Gal.putImage(image.path);
+        setState(() {
+          _selectedImage = imageFile;
+          _imagePath = image.path;
+        });
+        print("Image path: $_imagePath");
+      } catch (e) {
+        print("Error saving image to gallery: $e");
+      }
+      setState(() {
+        _selectedImage = imageFile;
+      });
+    }
+  }
+
   void _addTask() {
     if (titleController.text.isEmpty) return;
-
+    if (_selectedImage != null) {
+      _imagePath = _selectedImage?.path;
+    }
     final newTask = TaskModel(
+      id: 'some_unique_id',
       title: titleController.text,
-      time: '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+      time:
+          '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+      imagePath: _imagePath,
     );
 
     Provider.of<TaskProvider>(context, listen: false).addTask(newTask);
@@ -269,6 +332,30 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                         ),
                       ),
                     ),
+                    SizedBox(height: 20),
+                    Center(
+                      child: Column(
+                        children: [
+                          _selectedImage != null
+                              ? Image.file(_selectedImage!, height: 100)
+                              : Text("No image selected"),
+                          SizedBox(height: 10),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              ElevatedButton(
+                                onPressed: _pickImage,
+                                child: Text("Add Photo"),
+                              ),
+                              ElevatedButton(
+                                onPressed: _takePhoto,
+                                child: Text("Take Photo"),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
                     Spacer(),
                     SizedBox(
                       width: double.infinity,
@@ -320,7 +407,7 @@ class AddTaskScreenState extends State<AddTaskScreen> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          SizedBox(width: 40), // For balance
+          SizedBox(width: 40),
         ],
       ),
     );
