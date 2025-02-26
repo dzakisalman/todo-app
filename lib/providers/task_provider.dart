@@ -1,12 +1,12 @@
-import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
-import '../models/task_model.dart';
-import '../screens/completion_screen.dart';
+
+import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-
+import '../models/task_model.dart';
+import '../screens/completion_screen.dart';
 
 class TaskProvider with ChangeNotifier {
   static const String TASKS_KEY = 'tasks';
@@ -17,9 +17,13 @@ class TaskProvider with ChangeNotifier {
   String? _error;
 
   List<TaskModel> get tasks => _tasks;
+
   bool get isLoading => _isLoading;
+
   String? get error => _error;
-  bool get hasCompletedAllTasks => _tasks.isNotEmpty && _tasks.every((task) => task.isCompleted);
+
+  bool get hasCompletedAllTasks =>
+      _tasks.isNotEmpty && _tasks.every((task) => task.isCompleted);
 
   TaskProvider() {
     _loadTasks();
@@ -35,9 +39,11 @@ class TaskProvider with ChangeNotifier {
       final String? taskData = prefs.getString(TASKS_KEY);
       if (taskData != null) {
         List<dynamic> decodedData = jsonDecode(taskData);
-        _tasks = decodedData.map((e) => TaskModel.fromJson(e as Map<String, dynamic>)).toList();
+        _tasks = decodedData
+            .map((e) => TaskModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
-      
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -53,7 +59,8 @@ class TaskProvider with ChangeNotifier {
   Future<bool> _saveTasks([int retryCount = 0]) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(TASKS_KEY, jsonEncode(_tasks.map((e) => e.toJson()).toList()));
+      await prefs.setString(
+          TASKS_KEY, jsonEncode(_tasks.map((e) => e.toJson()).toList()));
       return true;
     } catch (e) {
       if (retryCount < MAX_RETRY_ATTEMPTS) {
@@ -100,24 +107,27 @@ class TaskProvider with ChangeNotifier {
 
     notifyListeners();
   }
+
   Future<void> _saveImageToGallery(String imagePath) async {
-  if (await Permission.storage.request().isGranted) {
-    try {
-      await Gal.putImage(imagePath);
-    } catch (e) {
+    if (await Permission.storage.request().isGranted) {
+      try {
+        await Gal.putImage(imagePath);
+      } catch (e) {
         _error = 'Failed to save image to gallery: $e';
         notifyListeners();
-    }
-  } else {
+      }
+    } else {
       _error = 'Storage permission denied';
       notifyListeners();
+    }
   }
-}
+
   Future<void> _saveImagePath(String taskId, String path) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-  print('Saving ImagePath for Task ID: $taskId -> Path: $path'); // Debugging
+    print('Saving ImagePath for Task ID: $taskId -> Path: $path'); // Debugging
     await prefs.setString('imagePath_$taskId', path);
-  print('Saved ImagePath: ${prefs.getString('imagePath_$taskId')}'); // Debugging
+    print(
+        'Saved ImagePath: ${prefs.getString('imagePath_$taskId')}'); // Debugging
   }
 
   Future<String?> getImagePath(String taskId) async {

@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../models/task_model.dart';
 
 class DetailScreen extends StatefulWidget {
@@ -25,6 +26,7 @@ class DetailScreenState extends State<DetailScreen> {
     parseTimeFromTask();
     _loadImagePath();
   }
+
   Future<void> _loadImagePath() async {
     setState(() {
       isLoadingImage = true;
@@ -33,32 +35,31 @@ class DetailScreenState extends State<DetailScreen> {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     String? loadedPath = prefs.getString('imagePath_${widget.task.id}');
 
-  if (loadedPath != null && File(loadedPath).existsSync()) {
+    if (loadedPath != null && File(loadedPath).existsSync()) {
       print('Loaded imagePath for task ${widget.task.id}: $loadedPath');
-    setState(() {
-      imagePath = loadedPath;
-    });
-  } else {
-    print('No valid image found for task ${widget.task.id}');
-    setState(() {
-      imagePath = null;
-    });
-  }
+      setState(() {
+        imagePath = loadedPath;
+      });
+    } else {
+      print('No valid image found for task ${widget.task.id}');
+      setState(() {
+        imagePath = null;
+      });
+    }
 
     setState(() {
       isLoadingImage = false;
     });
-}
-
+  }
 
   void parseTimeFromTask() {
     try {
       List<String> timeParts = widget.task.time.split(":");
       if (timeParts.length == 2) {
-    selectedTime = TimeOfDay(
+        selectedTime = TimeOfDay(
           hour: int.parse(timeParts[0]),
           minute: int.parse(timeParts[1]),
-    );
+        );
       } else {
         selectedTime = TimeOfDay.now();
       }
@@ -259,7 +260,7 @@ class DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  buildInfoItem(Icons.calendar_today, "24/11/2019", "Date"),
+                  buildInfoItem(Icons.calendar_today, "26/02/2025", "Date"),
                   GestureDetector(
                     onTap: selectTime,
                     child: buildInfoItem(
@@ -274,16 +275,16 @@ class DetailScreenState extends State<DetailScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   buildInfoItem(Icons.category, "Travel", "Category"),
-                  buildInfoItem(Icons.location_on, "Sukabumi", "Location"),
+                  buildInfoItem(Icons.location_on, "Surabaya", "Location"),
                 ],
               ),
-              SizedBox(height: 20),
+              SizedBox(height: 40),
               Center(
                 child: isLoadingImage
                     ? CircularProgressIndicator()
                     : imagePath != null
-                    ? Image.file(File(imagePath!))
-                    : Text('No image found'),
+                        ? Image.file(File(imagePath!))
+                        : Text('No image found'),
               ),
             ],
           ),

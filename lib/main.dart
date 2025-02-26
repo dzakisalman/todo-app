@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'screens/home_screen.dart';
-import 'screens/completion_screen.dart';
+
 import 'providers/task_provider.dart';
+import 'screens/completion_screen.dart';
+import 'screens/home_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SharedPreferences.getInstance(); // Initialize SharedPreferences
-  
+  await SharedPreferences.getInstance();
+
   runApp(
     MultiProvider(
       providers: [

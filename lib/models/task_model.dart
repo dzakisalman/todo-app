@@ -15,10 +15,10 @@ class TaskModel {
 
   factory TaskModel.fromJson(Map<String, dynamic> json) {
     return TaskModel(
-      id: json['id'] ?? '', // Ambil id dari JSON
+      id: json['id'] ?? '',
       title: json['title'] ?? '',
       time: json['time'] ?? '',
-      imagePath: json['imagePath'], // Ambil imagePath dari JSON
+      imagePath: json['imagePath'],
       isCompleted: json['isCompleted'] ?? false,
     );
   }
@@ -28,7 +28,7 @@ class TaskModel {
       'id': id,
       'title': title,
       'time': time,
-      'imagePath': imagePath, // Sertakan imagePath dalam JSON
+      'imagePath': imagePath,
       'isCompleted': isCompleted,
     };
   }

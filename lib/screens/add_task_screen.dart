@@ -221,17 +221,17 @@ class AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Future<void> _processImage(XFile image) async {
-      File imageFile = File(image.path);
-      try {
-        await Gal.putImage(image.path);
-        setState(() {
-          _selectedImage = imageFile;
-          _imagePath = image.path;
-        });
-        print("Image path: $_imagePath");
-      } catch (e) {
-        print("Error saving image to gallery: $e");
-      }
+    File imageFile = File(image.path);
+    try {
+      await Gal.putImage(image.path);
+      setState(() {
+        _selectedImage = imageFile;
+        _imagePath = image.path;
+      });
+      print("Image path: $_imagePath");
+    } catch (e) {
+      print("Error saving image to gallery: $e");
+    }
   }
 
   void _addTask() {
