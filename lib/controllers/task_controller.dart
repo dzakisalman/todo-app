@@ -1,63 +1,55 @@
 import 'dart:convert';
 
-import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
+import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/task_model.dart';
 import '../screens/completion_screen.dart';
 
-class TaskProvider with ChangeNotifier {
+class TaskController extends GetxController {
   static const String TASKS_KEY = 'tasks';
   static const int MAX_RETRY_ATTEMPTS = 3;
 
-  List<TaskModel> _tasks = [];
-  bool _isLoading = false;
-  String? _error;
+  var _tasks = <TaskModel>[].obs;
+  var _isLoading = false.obs;
+  var _error = ''.obs;
 
-  List<TaskModel> get tasks => _tasks;
+  List<TaskModel> get tasks => _tasks.toList();
 
-  bool get isLoading => _isLoading;
+  bool get isLoading => _isLoading.value;
 
-  String? get error => _error;
+  String get error => _error.value;
 
   bool get hasCompletedAllTasks =>
       _tasks.isNotEmpty && _tasks.every((task) => task.isCompleted);
 
-  TaskProvider() {
+  TaskController() {
     _loadTasks();
   }
 
   Future<bool> _loadTasks() async {
     try {
-      _isLoading = true;
-      _error = null;
-      notifyListeners();
+      _isLoading.value = true;
+      _error.value = '';
 
       final prefs = await SharedPreferences.getInstance();
-    print('SharedPreferences instance created'); // Debug logging
-
       final String? taskData = prefs.getString(TASKS_KEY);
-    print('Task data: $taskData'); // Debug logging
 
       if (taskData != null) {
         List<dynamic> decodedData = jsonDecode(taskData);
-        _tasks = decodedData
+        _tasks.value = decodedData
             .map((e) => TaskModel.fromJson(e as Map<String, dynamic>))
             .toList();
-      print('Tasks loaded: ${_tasks.length}'); // Debug logging
       }
 
-      _isLoading = false;
-      notifyListeners();
+      _isLoading.value = false;
       return true;
     } catch (e) {
-    print('Error loading tasks: $e'); // Debug logging
-      _error = 'Error loading tasks: $e';
-      _isLoading = false;
-      _tasks = [];
-      notifyListeners();
+      _error.value = 'Error loading tasks: $e';
+      _isLoading.value = false;
+      _tasks.clear();
       return false;
     }
   }
@@ -67,52 +59,42 @@ class TaskProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
           TASKS_KEY, jsonEncode(_tasks.map((e) => e.toJson()).toList()));
-    _error = null;
+      _error.value = '';
       return true;
     } catch (e) {
       if (retryCount < MAX_RETRY_ATTEMPTS) {
         await Future.delayed(Duration(seconds: 1));
         return _saveTasks(retryCount + 1);
       }
-      _error = 'Error saving tasks: $e';
-      notifyListeners();
+      _error.value = 'Error saving tasks: $e';
       return false;
     }
   }
 
-  Future<void> toggleTaskCompletion(int index, BuildContext context) async {
+  Future<void> toggleTaskCompletion(int index) async {
     if (index >= 0 && index < _tasks.length) {
       _tasks[index].isCompleted = !_tasks[index].isCompleted;
       await _saveTasks();
-      notifyListeners();
 
-      // Check if all tasks are completed
-      if (hasCompletedAllTasks && context.mounted) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => CompletionScreen()),
-        );
+      if (hasCompletedAllTasks) {
+        Get.to(() => CompletionScreen());
       }
     }
   }
 
   Future<void> addTask(TaskModel task) async {
     if (task.title.isEmpty || task.time.isEmpty) {
-      _error = 'Title and time cannot be empty';
-      notifyListeners();
+      _error.value = 'Title and time cannot be empty';
       return;
     }
 
     _tasks.add(task);
     await _saveTasks();
-    await _saveImagePath(task.id, task.imagePath!);
-
     if (task.imagePath != null) {
       await _saveImagePath(task.id, task.imagePath!);
       await _saveImageToGallery(task.imagePath!);
     }
     await _loadTasks();
-    notifyListeners();
   }
 
   Future<void> _saveImageToGallery(String imagePath) async {
@@ -120,21 +102,16 @@ class TaskProvider with ChangeNotifier {
       try {
         await Gal.putImage(imagePath);
       } catch (e) {
-        _error = 'Failed to save image to gallery: $e';
-        notifyListeners();
+        _error.value = 'Failed to save image to gallery: $e';
       }
     } else {
-      _error = 'Storage permission denied';
-      notifyListeners();
+      _error.value = 'Storage permission denied';
     }
   }
 
   Future<void> _saveImagePath(String taskId, String path) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
-    print('Saving ImagePath for Task ID: $taskId -> Path: $path'); // Debugging
     await prefs.setString('imagePath_$taskId', path);
-    print(
-        'Saved ImagePath: ${prefs.getString('imagePath_$taskId')}'); // Debugging
   }
 
   Future<String?> getImagePath(String taskId) async {
@@ -146,20 +123,11 @@ class TaskProvider with ChangeNotifier {
     if (index >= 0 && index < _tasks.length) {
       _tasks.removeAt(index);
       await _saveTasks();
-      notifyListeners();
     }
   }
 
   Future<void> retryLoadTasks() async {
     await _loadTasks();
-    _error = null;
+    _error.value = '';
   }
-}
-
-void debugSharedPreferences() async {
-  SharedPreferences prefs = await SharedPreferences.getInstance();
-  print('All stored keys in SharedPreferences: ${prefs.getKeys()}');
-  prefs.getKeys().forEach((key) {
-    print('$key: ${prefs.get(key)}');
-  });
 }

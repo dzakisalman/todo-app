@@ -2,11 +2,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
+import 'package:get/get.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:provider/provider.dart';
 
+import '../controllers/task_controller.dart';
 import '../models/task_model.dart';
-import '../providers/task_provider.dart';
 
 class AddTaskScreen extends StatefulWidget {
   @override
@@ -19,6 +19,8 @@ class AddTaskScreenState extends State<AddTaskScreen> {
   bool isButtonEnabled = false;
   File? _selectedImage;
   String? _imagePath;
+
+  final TaskController taskController = Get.find();
 
   @override
   void initState() {
@@ -68,7 +70,6 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // Hours
                       Container(
                         width: 60,
                         child: ListWheelScrollView(
@@ -110,7 +111,6 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      // Minutes
                       Container(
                         width: 60,
                         child: ListWheelScrollView(
@@ -243,14 +243,14 @@ class AddTaskScreenState extends State<AddTaskScreen> {
     }
 
     final newTask = TaskModel(
-      id: DateTime.now().toString(), // Generate unique ID
+      id: DateTime.now().toString(),
       title: titleController.text,
       time:
           '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
       imagePath: _imagePath,
     );
 
-    Provider.of<TaskProvider>(context, listen: false).addTask(newTask);
+    taskController.addTask(newTask);
     Navigator.pop(context);
   }
 

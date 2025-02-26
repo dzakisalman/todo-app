@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 
 class CompletionScreen extends StatelessWidget {
   @override
@@ -107,7 +108,7 @@ class CompletionScreen extends StatelessWidget {
                   elevation: 0,
                 ),
                 onPressed: () {
-                  Navigator.pop(context);
+                  Get.back();
                 },
                 child: Text(
                   "Add",

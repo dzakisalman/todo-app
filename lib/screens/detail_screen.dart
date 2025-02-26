@@ -2,6 +2,7 @@ import 'dart:core';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/task_model.dart';
@@ -141,10 +142,9 @@ class DetailScreenState extends State<DetailScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
-                  buildButton("Cancel", Colors.blue.shade700,
-                      () => Navigator.pop(context)),
+                  buildButton("Cancel", Colors.blue.shade700, () => Get.back()),
                   buildButton("Save", Colors.orange, () {
-                    Navigator.pop(context, true);
+                    Get.back(result: true);
                   }),
                 ],
               ),
@@ -216,7 +216,7 @@ class DetailScreenState extends State<DetailScreen> {
           padding: const EdgeInsets.only(left: 24),
           child: IconButton(
             icon: Icon(Icons.arrow_back_ios, color: Colors.black),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Get.back(),
           ),
         ),
         actions: [
