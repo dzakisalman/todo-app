@@ -36,18 +36,24 @@ class TaskProvider with ChangeNotifier {
       notifyListeners();
 
       final prefs = await SharedPreferences.getInstance();
+    print('SharedPreferences instance created'); // Debug logging
+
       final String? taskData = prefs.getString(TASKS_KEY);
+    print('Task data: $taskData'); // Debug logging
+
       if (taskData != null) {
         List<dynamic> decodedData = jsonDecode(taskData);
         _tasks = decodedData
             .map((e) => TaskModel.fromJson(e as Map<String, dynamic>))
             .toList();
+      print('Tasks loaded: ${_tasks.length}'); // Debug logging
       }
 
       _isLoading = false;
       notifyListeners();
       return true;
     } catch (e) {
+    print('Error loading tasks: $e'); // Debug logging
       _error = 'Error loading tasks: $e';
       _isLoading = false;
       _tasks = [];
@@ -61,10 +67,11 @@ class TaskProvider with ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
           TASKS_KEY, jsonEncode(_tasks.map((e) => e.toJson()).toList()));
+    _error = null;
       return true;
     } catch (e) {
       if (retryCount < MAX_RETRY_ATTEMPTS) {
-        await Future.delayed(Duration(seconds: 1)); // Wait before retry
+        await Future.delayed(Duration(seconds: 1));
         return _saveTasks(retryCount + 1);
       }
       _error = 'Error saving tasks: $e';
@@ -80,7 +87,7 @@ class TaskProvider with ChangeNotifier {
       notifyListeners();
 
       // Check if all tasks are completed
-      if (hasCompletedAllTasks) {
+      if (hasCompletedAllTasks && context.mounted) {
         Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => CompletionScreen()),
@@ -104,7 +111,7 @@ class TaskProvider with ChangeNotifier {
       await _saveImagePath(task.id, task.imagePath!);
       await _saveImageToGallery(task.imagePath!);
     }
-
+    await _loadTasks();
     notifyListeners();
   }
 
@@ -145,6 +152,7 @@ class TaskProvider with ChangeNotifier {
 
   Future<void> retryLoadTasks() async {
     await _loadTasks();
+    _error = null;
   }
 }
 
