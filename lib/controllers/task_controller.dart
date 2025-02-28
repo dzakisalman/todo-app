@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:flutter/material.dart';
 import 'package:gal/gal.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,18 +13,45 @@ class TaskController extends GetxController {
   static const String TASKS_KEY = 'tasks';
   static const int MAX_RETRY_ATTEMPTS = 3;
 
-  var _tasks = <TaskModel>[].obs;
-  var _isLoading = false.obs;
-  var _error = ''.obs;
+  List<TaskModel> _tasks = [];
+  bool _isLoading = false;
+  String _error = '';
+  List<TaskModel> _filteredTasks = [];
+  TimeOfDay? _startTime;
+  TimeOfDay? _endTime;
+  String _searchQuery = '';
 
-  List<TaskModel> get tasks => _tasks.toList();
+  List<TaskModel> get tasks => _tasks;
 
-  bool get isLoading => _isLoading.value;
+  bool get isLoading => _isLoading;
 
-  String get error => _error.value;
+  String get error => _error;
 
   bool get hasCompletedAllTasks =>
       _tasks.isNotEmpty && _tasks.every((task) => task.isCompleted);
+
+  String get searchQuery => _searchQuery;
+
+  List<TaskModel> get filteredTasks {
+    if (_searchQuery.isEmpty && _filteredTasks.isEmpty) {
+      return _tasks;
+    }
+
+    var result = _tasks;
+
+    if (_searchQuery.isNotEmpty) {
+      result = result
+          .where((task) =>
+              task.title.toLowerCase().contains(_searchQuery.toLowerCase()))
+          .toList();
+    }
+
+    if (_filteredTasks.isNotEmpty) {
+      result = result.where((task) => _filteredTasks.contains(task)).toList();
+    }
+
+    return result;
+  }
 
   TaskController() {
     _loadTasks();
@@ -31,25 +59,28 @@ class TaskController extends GetxController {
 
   Future<bool> _loadTasks() async {
     try {
-      _isLoading.value = true;
-      _error.value = '';
+      _isLoading = true;
+      _error = '';
+      update();
 
       final prefs = await SharedPreferences.getInstance();
       final String? taskData = prefs.getString(TASKS_KEY);
 
       if (taskData != null) {
         List<dynamic> decodedData = jsonDecode(taskData);
-        _tasks.value = decodedData
+        _tasks = decodedData
             .map((e) => TaskModel.fromJson(e as Map<String, dynamic>))
             .toList();
       }
 
-      _isLoading.value = false;
+      _isLoading = false;
+      update();
       return true;
     } catch (e) {
-      _error.value = 'Error loading tasks: $e';
-      _isLoading.value = false;
+      _error = 'Error loading tasks: $e';
+      _isLoading = false;
       _tasks.clear();
+      update();
       return false;
     }
   }
@@ -59,14 +90,16 @@ class TaskController extends GetxController {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(
           TASKS_KEY, jsonEncode(_tasks.map((e) => e.toJson()).toList()));
-      _error.value = '';
+      _error = '';
+      update();
       return true;
     } catch (e) {
       if (retryCount < MAX_RETRY_ATTEMPTS) {
         await Future.delayed(Duration(seconds: 1));
         return _saveTasks(retryCount + 1);
       }
-      _error.value = 'Error saving tasks: $e';
+      _error = 'Error saving tasks: $e';
+      update();
       return false;
     }
   }
@@ -79,12 +112,14 @@ class TaskController extends GetxController {
       if (hasCompletedAllTasks) {
         Get.to(() => CompletionScreen());
       }
+      update();
     }
   }
 
   Future<void> addTask(TaskModel task) async {
     if (task.title.isEmpty || task.time.isEmpty) {
-      _error.value = 'Title and time cannot be empty';
+      _error = 'Title and time cannot be empty';
+      update();
       return;
     }
 
@@ -95,6 +130,7 @@ class TaskController extends GetxController {
       await _saveImageToGallery(task.imagePath!);
     }
     await _loadTasks();
+    update();
   }
 
   Future<void> _saveImageToGallery(String imagePath) async {
@@ -102,16 +138,19 @@ class TaskController extends GetxController {
       try {
         await Gal.putImage(imagePath);
       } catch (e) {
-        _error.value = 'Failed to save image to gallery: $e';
+        _error = 'Failed to save image to gallery: $e';
+        update();
       }
     } else {
-      _error.value = 'Storage permission denied';
+      _error = 'Storage permission denied';
+      update();
     }
   }
 
   Future<void> _saveImagePath(String taskId, String path) async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     await prefs.setString('imagePath_$taskId', path);
+    update();
   }
 
   Future<String?> getImagePath(String taskId) async {
@@ -123,11 +162,46 @@ class TaskController extends GetxController {
     if (index >= 0 && index < _tasks.length) {
       _tasks.removeAt(index);
       await _saveTasks();
+      update();
     }
   }
 
   Future<void> retryLoadTasks() async {
     await _loadTasks();
-    _error.value = '';
+    _error = '';
+    update();
+  }
+
+  void clearTimeFilter() {
+    _startTime = null;
+    _endTime = null;
+    _filteredTasks.clear();
+    update();
+  }
+
+  void filterTasksByTimeRange(TimeOfDay? start, TimeOfDay? end) {
+    if (start == null || end == null) {
+      clearTimeFilter();
+      return;
+    }
+
+    _startTime = start;
+    _endTime = end;
+
+    final startMinutes = start.hour * 60 + start.minute;
+    final endMinutes = end.hour * 60 + end.minute;
+
+    final filtered = _tasks.where((task) {
+      final taskMinutes = task.getTimeInMinutes();
+      return taskMinutes >= startMinutes && taskMinutes <= endMinutes;
+    }).toList();
+
+    _filteredTasks = filtered;
+    update();
+  }
+
+  void filterBySearchQuery(String query) {
+    _searchQuery = query;
+    update();
   }
 }

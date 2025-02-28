@@ -87,6 +87,119 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
+  void _showTimeFilterBottomSheet() {
+    TimeOfDay? startTime;
+    TimeOfDay? endTime;
+
+    Get.bottomSheet(
+      StatefulBuilder(
+        builder: (context, setState) {
+          return Container(
+            padding: EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Filter Tasks by Time Range',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ListTile(
+                        title: Text('Start Time'),
+                        subtitle:
+                            Text(startTime?.format(Get.context!) ?? 'Not set'),
+                        trailing: Icon(Icons.access_time),
+                        onTap: () async {
+                          final time = await Get.dialog(
+                            TimePickerDialog(
+                              initialTime: startTime ?? TimeOfDay.now(),
+                            ),
+                          );
+                          if (time != null) {
+                            setState(() => startTime = time);
+                          }
+                        },
+                      ),
+                    ),
+                    Expanded(
+                      child: ListTile(
+                        title: Text('End Time'),
+                        subtitle:
+                            Text(endTime?.format(Get.context!) ?? 'Not set'),
+                        trailing: Icon(Icons.access_time),
+                        onTap: () async {
+                          final time = await Get.dialog(
+                            TimePickerDialog(
+                              initialTime: endTime ?? TimeOfDay.now(),
+                            ),
+                          );
+                          if (time != null) {
+                            setState(() => endTime = time);
+                          }
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () {
+                        taskController.clearTimeFilter();
+                        Get.back();
+                      },
+                      icon: Icon(Icons.clear),
+                      label: Text('Clear Filter'),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: () {
+                        if (startTime != null && endTime != null) {
+                          taskController.filterTasksByTimeRange(
+                              startTime, endTime);
+                          Get.back();
+                        } else {
+                          Get.snackbar(
+                            'Error',
+                            'Please select both start and end time',
+                            snackPosition: SnackPosition.BOTTOM,
+                            backgroundColor: Colors.red,
+                            colorText: Colors.white,
+                          );
+                        }
+                      },
+                      icon: Icon(Icons.filter_alt),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color(0xFF4355B9),
+                      ),
+                      label: Text('Apply Filter',
+                          style: TextStyle(color: Colors.white)),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 20),
+              ],
+            ),
+          );
+        },
+      ),
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
+    );
+  }
+
   Widget buildHeader() {
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 20),
@@ -117,10 +230,11 @@ class HomeScreen extends StatelessWidget {
             ),
             child: TextField(
               style: TextStyle(color: Colors.white),
+              onChanged: (value) => taskController.filterBySearchQuery(value),
               decoration: InputDecoration(
                 border: InputBorder.none,
                 suffixIcon: Icon(Icons.search, color: Colors.white54),
-                hintText: "Cari...",
+                hintText: "Cari task...",
                 hintStyle: TextStyle(color: Colors.white54),
               ),
             ),
@@ -143,7 +257,10 @@ class HomeScreen extends StatelessWidget {
                 fontWeight: FontWeight.bold,
               ),
             ),
-            Icon(Icons.sort),
+            IconButton(
+              icon: Icon(Icons.sort),
+              onPressed: () => _showTimeFilterBottomSheet(),
+            ),
           ],
         ),
         Align(
@@ -166,78 +283,43 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildTaskList() {
-    return Obx(() {
-      if (taskController.isLoading) {
-        return Center(child: CircularProgressIndicator());
-      }
-
-      if (taskController.error.isNotEmpty) {
-        return Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                taskController.error,
-                style: TextStyle(color: Colors.red),
-              ),
-              SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => taskController.retryLoadTasks(),
-                child: Text('Retry'),
-              ),
-            ],
-          ),
-        );
-      }
-
-      if (taskController.tasks.isEmpty) {
-        return Center(
-          child: Text(
-            'No tasks yet. Add your first task!',
-            style: TextStyle(color: Colors.grey),
-          ),
-        );
-      }
-
-      return ListView.builder(
-        itemCount: taskController.tasks.length,
+    return GetBuilder<TaskController>(
+      builder: (controller) => ListView.builder(
+        itemCount: controller.filteredTasks.length,
         itemBuilder: (context, index) {
-          final task = taskController.tasks[index];
+          final task = controller.filteredTasks[index];
           return GestureDetector(
             onTap: () {
               Get.to(() => DetailScreen(task: task));
             },
             onLongPress: () {
-              showDialog(
-                context: context,
-                builder: (BuildContext context) {
-                  return AlertDialog(
-                    title: Text('Delete Task'),
-                    content: Text('Are you sure you want to delete this task?'),
-                    actions: <Widget>[
-                      TextButton(
-                        child: Text('Cancel'),
-                        onPressed: () {
-                          Get.back();
-                        },
-                      ),
-                      TextButton(
-                        child:
-                            Text('Delete', style: TextStyle(color: Colors.red)),
-                        onPressed: () {
-                          taskController.removeTask(index);
-                          Get.back();
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Task deleted'),
-                              duration: Duration(seconds: 2),
-                            ),
-                          );
-                        },
-                      ),
-                    ],
-                  );
-                },
+              Get.dialog(
+                AlertDialog(
+                  title: Text('Delete Task'),
+                  content: Text('Are you sure you want to delete this task?'),
+                  actions: <Widget>[
+                    TextButton(
+                      child: Text('Cancel'),
+                      onPressed: () {
+                        Get.back();
+                      },
+                    ),
+                    TextButton(
+                      child:
+                          Text('Delete', style: TextStyle(color: Colors.red)),
+                      onPressed: () {
+                        taskController.removeTask(index);
+                        Get.back();
+                        Get.snackbar(
+                          'Success',
+                          'Task deleted',
+                          snackPosition: SnackPosition.BOTTOM,
+                          duration: Duration(seconds: 2),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               );
             },
             child: Container(
@@ -295,8 +377,8 @@ class HomeScreen extends StatelessWidget {
             ),
           );
         },
-      );
-    });
+      ),
+    );
   }
 
   Widget _buildBottomNav() {

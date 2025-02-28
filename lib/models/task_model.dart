@@ -32,4 +32,14 @@ class TaskModel {
       'isCompleted': isCompleted,
     };
   }
+
+  int getTimeInMinutes() {
+    final parts = time.split(':');
+    if (parts.length == 2) {
+      final hours = int.tryParse(parts[0]) ?? 0;
+      final minutes = int.tryParse(parts[1]) ?? 0;
+      return hours * 60 + minutes;
+    }
+    return 0;
+  }
 }
