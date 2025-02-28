@@ -42,146 +42,144 @@ class AddTaskScreenState extends State<AddTaskScreen> {
   }
 
   Future<void> selectTime() async {
-    final bool? result = await showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          backgroundColor: Colors.transparent,
-          child: Container(
-            padding: EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Color(0xFF4355B9),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  'EDIT TIME',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+    final bool? result = await Get.dialog(
+      Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Color(0xFF4355B9),
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'EDIT TIME',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                SizedBox(height: 20),
-                Container(
-                  height: 180,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 60,
-                        child: ListWheelScrollView(
-                          itemExtent: 50,
-                          children: List.generate(24, (index) {
-                            String hour = index.toString().padLeft(2, '0');
-                            return Container(
-                              height: 50,
-                              alignment: Alignment.center,
-                              child: Text(
-                                hour,
-                                style: TextStyle(
-                                  color: hour ==
-                                          selectedTime.hour
-                                              .toString()
-                                              .padLeft(2, '0')
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.5),
-                                  fontSize: 24,
-                                ),
-                              ),
-                            );
-                          }),
-                          onSelectedItemChanged: (index) {
-                            setState(() {
-                              selectedTime = TimeOfDay(
-                                hour: index,
-                                minute: selectedTime.minute,
-                              );
-                            });
-                          },
-                        ),
-                      ),
-                      Text(
-                        ':',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      Container(
-                        width: 60,
-                        child: ListWheelScrollView(
-                          itemExtent: 50,
-                          children: List.generate(60, (index) {
-                            String minute = index.toString().padLeft(2, '0');
-                            return Container(
-                              height: 50,
-                              alignment: Alignment.center,
-                              child: Text(
-                                minute,
-                                style: TextStyle(
-                                  color: minute ==
-                                          selectedTime.minute
-                                              .toString()
-                                              .padLeft(2, '0')
-                                      ? Colors.white
-                                      : Colors.white.withOpacity(0.5),
-                                  fontSize: 24,
-                                ),
-                              ),
-                            );
-                          }),
-                          onSelectedItemChanged: (index) {
-                            setState(() {
-                              selectedTime = TimeOfDay(
-                                hour: selectedTime.hour,
-                                minute: index,
-                              );
-                            });
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              SizedBox(height: 20),
+              Container(
+                height: 180,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(
-                        'Cancel',
-                        style: TextStyle(color: Colors.white),
+                    Container(
+                      width: 60,
+                      child: ListWheelScrollView(
+                        itemExtent: 50,
+                        children: List.generate(24, (index) {
+                          String hour = index.toString().padLeft(2, '0');
+                          return Container(
+                            height: 50,
+                            alignment: Alignment.center,
+                            child: Text(
+                              hour,
+                              style: TextStyle(
+                                color: hour ==
+                                        selectedTime.hour
+                                            .toString()
+                                            .padLeft(2, '0')
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.5),
+                                fontSize: 24,
+                              ),
+                            ),
+                          );
+                        }),
+                        onSelectedItemChanged: (index) {
+                          setState(() {
+                            selectedTime = TimeOfDay(
+                              hour: index,
+                              minute: selectedTime.minute,
+                            );
+                          });
+                        },
                       ),
                     ),
-                    TextButton(
-                      onPressed: () {
-                        Navigator.pop(context, true);
-                      },
-                      child: Container(
-                        padding:
-                            EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Color(0xFFFF7B54),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          'Save',
-                          style: TextStyle(color: Colors.white),
-                        ),
+                    Text(
+                      ':',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Container(
+                      width: 60,
+                      child: ListWheelScrollView(
+                        itemExtent: 50,
+                        children: List.generate(60, (index) {
+                          String minute = index.toString().padLeft(2, '0');
+                          return Container(
+                            height: 50,
+                            alignment: Alignment.center,
+                            child: Text(
+                              minute,
+                              style: TextStyle(
+                                color: minute ==
+                                        selectedTime.minute
+                                            .toString()
+                                            .padLeft(2, '0')
+                                    ? Colors.white
+                                    : Colors.white.withOpacity(0.5),
+                                fontSize: 24,
+                              ),
+                            ),
+                          );
+                        }),
+                        onSelectedItemChanged: (index) {
+                          setState(() {
+                            selectedTime = TimeOfDay(
+                              hour: selectedTime.hour,
+                              minute: index,
+                            );
+                          });
+                        },
                       ),
                     ),
                   ],
                 ),
-              ],
-            ),
+              ),
+              SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  TextButton(
+                    onPressed: () => Get.back(),
+                    child: Text(
+                      'Cancel',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      Get.back(result: true);
+                    },
+                    child: Container(
+                      padding:
+                          EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Color(0xFFFF7B54),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        'Save',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-        );
-      },
+        ),
+      ),
+      barrierDismissible: false,
     );
 
     if (result == true) {
@@ -236,8 +234,12 @@ class AddTaskScreenState extends State<AddTaskScreen> {
 
   void _addTask() {
     if (titleController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Judul tugas tidak boleh kosong')),
+      Get.snackbar(
+        'Error',
+        'Judul tugas tidak boleh kosong',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
       );
       return;
     }
@@ -251,7 +253,7 @@ class AddTaskScreenState extends State<AddTaskScreen> {
     );
 
     taskController.addTask(newTask);
-    Navigator.pop(context);
+    Get.back();
   }
 
   @override
@@ -405,7 +407,7 @@ class AddTaskScreenState extends State<AddTaskScreen> {
         children: [
           IconButton(
             icon: Icon(Icons.close, color: Colors.white),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Get.back(),
           ),
           Text(
             'Tambah Tugas',

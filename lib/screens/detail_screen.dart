@@ -71,92 +71,93 @@ class DetailScreenState extends State<DetailScreen> {
   }
 
   Future<void> selectTime() async {
-    final bool? result = await showModalBottomSheet(
-      barrierColor: Colors.transparent,
-      context: context,
-      isScrollControlled: true,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Color(0xFF3B5CB8),
-            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Column(
-                children: [
-                  Text(
-                    "EDIT TIME",
+    final bool? result = await Get.bottomSheet(
+      Container(
+        padding: EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Color(0xFF3B5CB8),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Column(
+              children: [
+                Text(
+                  "EDIT TIME",
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Container(
+                  width: 40,
+                  height: 3,
+                  decoration: BoxDecoration(
+                    color: Colors.orange,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                buildTimePicker(24, selectedTime.hour, (value) {
+                  setState(() {
+                    selectedTime =
+                        TimeOfDay(hour: value, minute: selectedTime.minute);
+                  });
+                }),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 10),
+                  child: Text(
+                    ":",
                     style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
                       color: Colors.white,
+                      fontSize: 30,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  SizedBox(height: 5),
-                  Container(
-                    width: 40,
-                    height: 3,
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  buildTimePicker(24, selectedTime.hour, (value) {
-                    setState(() {
-                      selectedTime =
-                          TimeOfDay(hour: value, minute: selectedTime.minute);
-                    });
-                  }),
-                  Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 10),
-                    child: Text(
-                      ":",
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  buildTimePicker(60, selectedTime.minute, (value) {
-                    setState(() {
-                      selectedTime =
-                          TimeOfDay(hour: selectedTime.hour, minute: value);
-                    });
-                  }),
-                ],
-              ),
-              SizedBox(height: 20),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  buildButton("Cancel", Colors.blue.shade700, () => Get.back()),
-                  buildButton("Save", Colors.orange, () {
-                    Get.back(result: true);
-                  }),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
+                ),
+                buildTimePicker(60, selectedTime.minute, (value) {
+                  setState(() {
+                    selectedTime =
+                        TimeOfDay(hour: selectedTime.hour, minute: value);
+                  });
+                }),
+              ],
+            ),
+            SizedBox(height: 20),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                buildButton("Cancel", Colors.blue.shade700, () => Get.back()),
+                buildButton("Save", Colors.orange, () {
+                  Get.back(result: true);
+                }),
+              ],
+            ),
+          ],
+        ),
+      ),
+      backgroundColor: Colors.transparent,
+      isDismissible: true,
+      enableDrag: true,
+      isScrollControlled: true,
     );
 
     if (result == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Waktu berhasil diubah')),
+      Get.snackbar(
+        'Success',
+        'Waktu berhasil diubah',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.green,
+        colorText: Colors.white,
+        duration: Duration(seconds: 2),
       );
     }
   }
