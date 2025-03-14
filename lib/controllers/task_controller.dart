@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -5,12 +6,16 @@ import 'package:gal/gal.dart';
 import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../models/task_model.dart';
 import '../screens/completion_screen.dart';
+import '../services/firebase_service.dart';
 
 class TaskController extends GetxController {
+  final FirebaseService _firebaseService = FirebaseService();
   static const String TASKS_KEY = 'tasks';
+  static const String IMAGES_KEY = 'images';
   static const int MAX_RETRY_ATTEMPTS = 3;
 
   List<TaskModel> _tasks = [];
@@ -57,57 +62,40 @@ class TaskController extends GetxController {
     _loadTasks();
   }
 
-  Future<bool> _loadTasks() async {
-    try {
-      _isLoading = true;
-      _error = '';
-      update();
+  void _loadTasks() {
+    _isLoading = true;
+    _error = '';
+    update();
 
-      final prefs = await SharedPreferences.getInstance();
-      final String? taskData = prefs.getString(TASKS_KEY);
-
-      if (taskData != null) {
-        List<dynamic> decodedData = jsonDecode(taskData);
-        _tasks = decodedData
-            .map((e) => TaskModel.fromJson(e as Map<String, dynamic>))
-            .toList();
-      }
-
-      _isLoading = false;
-      update();
-      return true;
-    } catch (e) {
-      _error = 'Error loading tasks: $e';
-      _isLoading = false;
-      _tasks.clear();
-      update();
-      return false;
-    }
-  }
-
-  Future<bool> _saveTasks([int retryCount = 0]) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-          TASKS_KEY, jsonEncode(_tasks.map((e) => e.toJson()).toList()));
-      _error = '';
-      update();
-      return true;
-    } catch (e) {
-      if (retryCount < MAX_RETRY_ATTEMPTS) {
-        await Future.delayed(Duration(seconds: 1));
-        return _saveTasks(retryCount + 1);
-      }
-      _error = 'Error saving tasks: $e';
-      update();
-      return false;
-    }
+    _firebaseService.getTasks().listen(
+      (tasks) {
+        _tasks = tasks;
+        _isLoading = false;
+        update();
+      },
+      onError: (error) {
+        _error = 'Error loading tasks: $error';
+        _isLoading = false;
+        _tasks.clear();
+        update();
+      },
+    );
   }
 
   Future<void> toggleTaskCompletion(int index) async {
     if (index >= 0 && index < _tasks.length) {
-      _tasks[index].isCompleted = !_tasks[index].isCompleted;
-      await _saveTasks();
+      final task = _tasks[index];
+      final updatedTask = TaskModel(
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        time: task.time,
+        imageUrl: task.imageUrl,
+        isCompleted: !task.isCompleted,
+      );
+      
+      await _firebaseService.updateTask(updatedTask);
+      _tasks[index] = updatedTask;
 
       if (hasCompletedAllTasks) {
         Get.to(() => CompletionScreen());
@@ -116,58 +104,93 @@ class TaskController extends GetxController {
     }
   }
 
+  Future<void> _saveLocalImage(String taskId, String imagePath) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'image_$taskId';
+      await prefs.setString(key, imagePath);
+      print('Local image saved for task $taskId: $imagePath');
+    } catch (e) {
+      print('Error saving local image: $e');
+    }
+  }
+
+  Future<String?> getLocalImage(String taskId) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'image_$taskId';
+      final imagePath = prefs.getString(key);
+      print('Retrieved local image for task $taskId: $imagePath');
+      
+      if (imagePath != null && File(imagePath).existsSync()) {
+        return imagePath;
+      }
+      return null;
+    } catch (e) {
+      print('Error getting local image: $e');
+      return null;
+    }
+  }
+
   Future<void> addTask(TaskModel task) async {
-    if (task.title.isEmpty || task.time.isEmpty) {
-      _error = 'Title and time cannot be empty';
+    if (task.title.isEmpty) {
+      _error = 'Title cannot be empty';
       update();
       return;
     }
 
-    _tasks.add(task);
-    await _saveTasks();
-    if (task.imagePath != null) {
-      await _saveImagePath(task.id, task.imagePath!);
-      await _saveImageToGallery(task.imagePath!);
-    }
-    await _loadTasks();
-    update();
-  }
-
-  Future<void> _saveImageToGallery(String imagePath) async {
-    if (await Permission.storage.request().isGranted) {
-      try {
-        await Gal.putImage(imagePath);
-      } catch (e) {
-        _error = 'Failed to save image to gallery: $e';
-        update();
-      }
-    } else {
-      _error = 'Storage permission denied';
+    try {
+      // Save to Firestore
+      await _firebaseService.addTask(task);
+      update();
+    } catch (e) {
+      _error = 'Error adding task: $e';
       update();
     }
   }
 
-  Future<void> _saveImagePath(String taskId, String path) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    await prefs.setString('imagePath_$taskId', path);
-    update();
-  }
-
-  Future<String?> getImagePath(String taskId) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    return prefs.getString('imagePath_$taskId');
+  Future<String?> uploadTaskImage(File imageFile, String taskId) async {
+    try {
+      // Save local path first
+      await _saveLocalImage(taskId, imageFile.path);
+      print('Saved local image path: ${imageFile.path}');
+      
+      // Then upload to Firebase Storage
+      final String? firebaseUrl = await _firebaseService.uploadImage(imageFile, taskId);
+      print('Uploaded to Firebase, got URL: $firebaseUrl');
+      
+      return firebaseUrl;
+    } catch (e) {
+      _error = 'Error uploading image: $e';
+      update();
+      return null;
+    }
   }
 
   Future<void> removeTask(int index) async {
     if (index >= 0 && index < _tasks.length) {
-      _tasks.removeAt(index);
-      await _saveTasks();
-      update();
+      final task = _tasks[index];
+      try {
+        // Remove from Firestore and Storage
+        if (task.imageUrl != null) {
+          await _firebaseService.deleteImage(task.imageUrl!);
+        }
+        await _firebaseService.deleteTask(task.id);
+
+        // Remove local image
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('image_${task.id}');
+
+        update();
+      } catch (e) {
+        _error = 'Error removing task: $e';
+        update();
+      }
     }
   }
 
   Future<void> retryLoadTasks() async {
-    await _loadTasks();
+    _loadTasks();
     _error = '';
     update();
   }
@@ -192,7 +215,7 @@ class TaskController extends GetxController {
     final endMinutes = end.hour * 60 + end.minute;
 
     final filtered = _tasks.where((task) {
-      final taskMinutes = task.getTimeInMinutes();
+      final taskMinutes = task.time.hour * 60 + task.time.minute;
       return taskMinutes >= startMinutes && taskMinutes <= endMinutes;
     }).toList();
 
@@ -203,5 +226,15 @@ class TaskController extends GetxController {
   void filterBySearchQuery(String query) {
     _searchQuery = query;
     update();
+  }
+
+  Future<void> updateTask(TaskModel task) async {
+    try {
+      await _firebaseService.updateTask(task);
+      update();
+    } catch (e) {
+      _error = 'Error updating task: $e';
+      update();
+    }
   }
 }

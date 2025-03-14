@@ -15,6 +15,7 @@ class AddTaskScreen extends StatefulWidget {
 
 class AddTaskScreenState extends State<AddTaskScreen> {
   final TextEditingController titleController = TextEditingController();
+  final TextEditingController descriptionController = TextEditingController();
   TimeOfDay selectedTime = TimeOfDay.now();
   bool isButtonEnabled = false;
   File? _selectedImage;
@@ -32,6 +33,7 @@ class AddTaskScreenState extends State<AddTaskScreen> {
   void dispose() {
     titleController.removeListener(updateButtonState);
     titleController.dispose();
+    descriptionController.dispose();
     super.dispose();
   }
 
@@ -187,25 +189,36 @@ class AddTaskScreenState extends State<AddTaskScreen> {
     }
   }
 
+  Future<void> _processImage(XFile image) async {
+    File imageFile = File(image.path);
+    try {
+      // Save to gallery
+      await Gal.putImage(image.path);
+      
+      // Save the file path
+      setState(() {
+        _selectedImage = imageFile;
+        _imagePath = image.path;
+      });
+      print("Image path saved: $_imagePath");
+    } catch (e) {
+      print("Error saving image: $e");
+      Get.snackbar(
+        'Error',
+        'Failed to save image',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
   Future<void> _pickImage() async {
     final ImagePicker _picker = ImagePicker();
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
-      File imageFile = File(image.path);
-      try {
-        await Gal.putImage(image.path);
-        setState(() {
-          _selectedImage = imageFile;
-          _imagePath = image.path;
-        });
-        print("Image path: $_imagePath");
-      } catch (e) {
-        print("Error saving image to gallery: $e");
-      }
-      setState(() {
-        _selectedImage = imageFile;
-      });
+      await _processImage(image);
     }
   }
 
@@ -218,21 +231,7 @@ class AddTaskScreenState extends State<AddTaskScreen> {
     }
   }
 
-  Future<void> _processImage(XFile image) async {
-    File imageFile = File(image.path);
-    try {
-      await Gal.putImage(image.path);
-      setState(() {
-        _selectedImage = imageFile;
-        _imagePath = image.path;
-      });
-      print("Image path: $_imagePath");
-    } catch (e) {
-      print("Error saving image to gallery: $e");
-    }
-  }
-
-  void _addTask() {
+  void _addTask() async {
     if (titleController.text.isEmpty) {
       Get.snackbar(
         'Error',
@@ -244,15 +243,36 @@ class AddTaskScreenState extends State<AddTaskScreen> {
       return;
     }
 
-    final newTask = TaskModel(
-      id: DateTime.now().toString(),
-      title: titleController.text,
-      time:
-          '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
-      imagePath: _imagePath,
+    final now = DateTime.now();
+    final taskTime = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      selectedTime.hour,
+      selectedTime.minute,
     );
 
-    taskController.addTask(newTask);
+    String? imageUrl;
+    final String taskId = DateTime.now().toString();
+
+    if (_selectedImage != null) {
+      try {
+        // Upload image and get Firebase URL
+        imageUrl = await taskController.uploadTaskImage(_selectedImage!, taskId);
+      } catch (e) {
+        print('Error uploading image: $e');
+      }
+    }
+
+    final newTask = TaskModel(
+      id: taskId,
+      title: titleController.text,
+      description: descriptionController.text,
+      time: taskTime,
+      imageUrl: imageUrl,
+    );
+
+    await taskController.addTask(newTask);
     Get.back();
   }
 
@@ -274,122 +294,155 @@ class AddTaskScreenState extends State<AddTaskScreen> {
                     topRight: Radius.circular(30),
                   ),
                 ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 20),
-                    Text(
-                      'Judul Tugas',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[700],
-                      ),
+                child: SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.only(
+                      bottom: MediaQuery.of(context).viewInsets.bottom,
                     ),
-                    SizedBox(height: 10),
-                    TextField(
-                      controller: titleController,
-                      decoration: InputDecoration(
-                        hintText: 'Masukkan judul tugas',
-                        filled: true,
-                        fillColor: Colors.grey[100],
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(15),
-                          borderSide: BorderSide.none,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 20),
+                        Text(
+                          'Judul Tugas',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
                         ),
-                        contentPadding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: 30),
-                    Text(
-                      'Waktu',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    SizedBox(height: 10),
-                    InkWell(
-                      onTap: selectTime,
-                      child: Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20,
-                          vertical: 16,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[100],
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.access_time,
-                              color: Color(0xFF4355B9),
+                        SizedBox(height: 10),
+                        TextField(
+                          controller: titleController,
+                          decoration: InputDecoration(
+                            hintText: 'Masukkan judul tugas',
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
                             ),
-                            SizedBox(width: 10),
-                            Text(
-                              '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.black87,
-                              ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
                             ),
-                          ],
+                          ),
                         ),
-                      ),
-                    ),
-                    SizedBox(height: 20),
-                    Center(
-                      child: Column(
-                        children: [
-                          _selectedImage != null
-                              ? Image.file(_selectedImage!, height: 100)
-                              : Text("No image selected"),
-                          SizedBox(height: 10),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        SizedBox(height: 20),
+                        Text(
+                          'Deskripsi',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        TextField(
+                          controller: descriptionController,
+                          maxLines: 3,
+                          decoration: InputDecoration(
+                            hintText: 'Masukkan deskripsi tugas',
+                            filled: true,
+                            fillColor: Colors.grey[100],
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(15),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Text(
+                          'Waktu',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[700],
+                          ),
+                        ),
+                        SizedBox(height: 10),
+                        InkWell(
+                          onTap: selectTime,
+                          child: Container(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 20,
+                              vertical: 16,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[100],
+                              borderRadius: BorderRadius.circular(15),
+                            ),
+                            child: Row(
+                              children: [
+                                Icon(
+                                  Icons.access_time,
+                                  color: Color(0xFF4355B9),
+                                ),
+                                SizedBox(width: 10),
+                                Text(
+                                  '${selectedTime.hour.toString().padLeft(2, '0')}:${selectedTime.minute.toString().padLeft(2, '0')}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 20),
+                        Center(
+                          child: Column(
                             children: [
-                              ElevatedButton(
-                                onPressed: _pickImage,
-                                child: Text("Add Photo"),
-                              ),
-                              ElevatedButton(
-                                onPressed: _takePhoto,
-                                child: Text("Take Photo"),
+                              _selectedImage != null
+                                  ? Image.file(_selectedImage!, height: 100)
+                                  : Text("No image selected"),
+                              SizedBox(height: 10),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  ElevatedButton(
+                                    onPressed: _pickImage,
+                                    child: Text("Add Photo"),
+                                  ),
+                                  ElevatedButton(
+                                    onPressed: _takePhoto,
+                                    child: Text("Take Photo"),
+                                  ),
+                                ],
                               ),
                             ],
                           ),
-                        ],
-                      ),
-                    ),
-                    Spacer(),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: ElevatedButton(
-                        onPressed: isButtonEnabled ? _addTask : null,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFFF7B54),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                          elevation: 0,
                         ),
-                        child: Text(
-                          'Tambah Tugas',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
+                        SizedBox(height: 30),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 55,
+                          child: ElevatedButton(
+                            onPressed: isButtonEnabled ? _addTask : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Color(0xFFFF7B54),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Tambah Tugas',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ),
-                    SizedBox(height: 20),
-                  ],
+                  ),
                 ),
               ),
             ),

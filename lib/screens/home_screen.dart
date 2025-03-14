@@ -214,7 +214,7 @@ class HomeScreen extends StatelessWidget {
             ),
           ),
           Text(
-            "Zaid bin Tsabit",
+            "Dzaki",
             style: TextStyle(
               color: Colors.white,
               fontSize: 28,
@@ -284,100 +284,153 @@ class HomeScreen extends StatelessWidget {
 
   Widget _buildTaskList() {
     return GetBuilder<TaskController>(
-      builder: (controller) => ListView.builder(
-        itemCount: controller.filteredTasks.length,
-        itemBuilder: (context, index) {
-          final task = controller.filteredTasks[index];
-          return GestureDetector(
-            onTap: () {
-              Get.to(() => DetailScreen(task: task));
-            },
-            onLongPress: () {
-              Get.dialog(
-                AlertDialog(
-                  title: Text('Delete Task'),
-                  content: Text('Are you sure you want to delete this task?'),
-                  actions: <Widget>[
-                    TextButton(
-                      child: Text('Cancel'),
-                      onPressed: () {
-                        Get.back();
-                      },
-                    ),
-                    TextButton(
-                      child:
-                          Text('Delete', style: TextStyle(color: Colors.red)),
-                      onPressed: () {
-                        taskController.removeTask(index);
-                        Get.back();
-                        Get.snackbar(
-                          'Success',
-                          'Task deleted',
-                          snackPosition: SnackPosition.BOTTOM,
-                          duration: Duration(seconds: 2),
-                        );
-                      },
-                    ),
-                  ],
+      builder: (controller) {
+        if (controller.isLoading) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        if (controller.error.isNotEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'Error: ${controller.error}',
+                  style: TextStyle(color: Colors.red),
                 ),
-              );
-            },
-            child: Container(
-              margin: EdgeInsets.only(bottom: 15),
-              padding: EdgeInsets.all(15),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Row(
-                children: [
-                  Container(
-                    padding: EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: _getIconColor(index),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: _getIcon(index),
-                  ),
-                  SizedBox(width: 15),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          task.title,
-                          style: TextStyle(
-                            fontWeight: FontWeight.w500,
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          task.time,
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Transform.scale(
-                    scale: 1.2,
-                    child: Checkbox(
-                      value: task.isCompleted,
-                      onChanged: (bool? value) async {
-                        await taskController.toggleTaskCompletion(index);
-                      },
-                      shape: CircleBorder(),
-                      activeColor: Colors.green,
-                    ),
-                  ),
-                ],
-              ),
+                ElevatedButton(
+                  onPressed: controller.retryLoadTasks,
+                  child: Text('Retry'),
+                ),
+              ],
             ),
           );
-        },
-      ),
+        }
+
+        final tasks = controller.filteredTasks;
+        if (tasks.isEmpty) {
+          return Center(
+            child: Text(
+              'No tasks found',
+              style: TextStyle(fontSize: 18, color: Colors.grey),
+            ),
+          );
+        }
+
+        return ListView.builder(
+          itemCount: tasks.length,
+          itemBuilder: (context, index) {
+            final task = tasks[index];
+            return Dismissible(
+              key: Key(task.id),
+              background: Container(
+                color: Colors.red,
+                alignment: Alignment.centerRight,
+                padding: EdgeInsets.only(right: 20),
+                child: Icon(Icons.delete, color: Colors.white),
+              ),
+              direction: DismissDirection.endToStart,
+              onDismissed: (direction) {
+                controller.removeTask(index);
+                Get.snackbar(
+                  'Success',
+                  'Task deleted successfully',
+                  snackPosition: SnackPosition.BOTTOM,
+                  backgroundColor: Colors.green,
+                  colorText: Colors.white,
+                );
+              },
+              child: GestureDetector(
+                onTap: () => Get.to(() => DetailScreen(task: task)),
+                child: Container(
+                  margin: EdgeInsets.only(bottom: 20),
+                  padding: EdgeInsets.all(15),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(15),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.2),
+                        spreadRadius: 2,
+                        blurRadius: 5,
+                        offset: Offset(0, 3),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: task.isCompleted
+                              ? Colors.green.withOpacity(0.2)
+                              : Color(0xFF4355B9).withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Icon(
+                          task.isCompleted
+                              ? Icons.check_circle
+                              : Icons.access_time,
+                          color: task.isCompleted
+                              ? Colors.green
+                              : Color(0xFF4355B9),
+                        ),
+                      ),
+                      SizedBox(width: 15),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              task.title,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                decoration: task.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                            SizedBox(height: 5),
+                            Text(
+                              '${task.time.hour.toString().padLeft(2, '0')}:${task.time.minute.toString().padLeft(2, '0')}',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                decoration: task.isCompleted
+                                    ? TextDecoration.lineThrough
+                                    : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (task.imageUrl != null)
+                        Container(
+                          width: 50,
+                          height: 50,
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(8),
+                            image: DecorationImage(
+                              image: NetworkImage(task.imageUrl!),
+                              fit: BoxFit.cover,
+                            ),
+                          ),
+                        ),
+                      Checkbox(
+                        value: task.isCompleted,
+                        onChanged: (bool? value) {
+                          controller.toggleTaskCompletion(index);
+                        },
+                        activeColor: Color(0xFF4355B9),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 

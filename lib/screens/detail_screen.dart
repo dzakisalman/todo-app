@@ -6,6 +6,7 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/task_model.dart';
+import '../controllers/task_controller.dart';
 
 class DetailScreen extends StatefulWidget {
   final TaskModel task;
@@ -20,54 +21,60 @@ class DetailScreenState extends State<DetailScreen> {
   late TimeOfDay selectedTime;
   String? imagePath;
   bool isLoadingImage = false;
+  final TaskController taskController = Get.find();
 
   @override
   void initState() {
     super.initState();
     parseTimeFromTask();
-    _loadImagePath();
+    _loadImage();
   }
 
-  Future<void> _loadImagePath() async {
+  Future<void> _loadImage() async {
     setState(() {
       isLoadingImage = true;
     });
 
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    String? loadedPath = prefs.getString('imagePath_${widget.task.id}');
+    try {
+      // First try to get local image
+      String? localPath = await taskController.getLocalImage(widget.task.id);
+      
+      if (localPath != null) {
+        print('Found local image: $localPath');
+        setState(() {
+          imagePath = localPath;
+          isLoadingImage = false;
+        });
+        return;
+      }
 
-    if (loadedPath != null && File(loadedPath).existsSync()) {
-      print('Loaded imagePath for task ${widget.task.id}: $loadedPath');
-      setState(() {
-        imagePath = loadedPath;
-      });
-    } else {
-      print('No valid image found for task ${widget.task.id}');
+      // If local image not available, use Firebase URL
+      if (widget.task.imageUrl != null) {
+        print('Using Firebase URL: ${widget.task.imageUrl}');
+        setState(() {
+          imagePath = widget.task.imageUrl;
+          isLoadingImage = false;
+        });
+      } else {
+        setState(() {
+          imagePath = null;
+          isLoadingImage = false;
+        });
+      }
+    } catch (e) {
+      print('Error loading image: $e');
       setState(() {
         imagePath = null;
+        isLoadingImage = false;
       });
     }
-
-    setState(() {
-      isLoadingImage = false;
-    });
   }
 
   void parseTimeFromTask() {
-    try {
-      List<String> timeParts = widget.task.time.split(":");
-      if (timeParts.length == 2) {
-        selectedTime = TimeOfDay(
-          hour: int.parse(timeParts[0]),
-          minute: int.parse(timeParts[1]),
-        );
-      } else {
-        selectedTime = TimeOfDay.now();
-      }
-    } catch (e) {
-      print("Error parsing time: $e");
-      selectedTime = TimeOfDay.now();
-    }
+    selectedTime = TimeOfDay(
+      hour: widget.task.time.hour,
+      minute: widget.task.time.minute,
+    );
   }
 
   Future<void> selectTime() async {
@@ -151,6 +158,27 @@ class DetailScreenState extends State<DetailScreen> {
     );
 
     if (result == true) {
+      // Update task with new time
+      final now = DateTime.now();
+      final newTime = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        selectedTime.hour,
+        selectedTime.minute,
+      );
+
+      final updatedTask = TaskModel(
+        id: widget.task.id,
+        title: widget.task.title,
+        description: widget.task.description,
+        time: newTime,
+        imageUrl: widget.task.imageUrl,
+        isCompleted: widget.task.isCompleted,
+      );
+
+      await taskController.updateTask(updatedTask);
+
       Get.snackbar(
         'Success',
         'Waktu berhasil diubah',
@@ -242,7 +270,7 @@ class DetailScreenState extends State<DetailScreen> {
               ),
               SizedBox(height: 10),
               Text(
-                "Ipsum dolor sit amet, consectetur acide tempor adscing sed do eiusmod tempor magna",
+                widget.task.description,
                 style: TextStyle(fontSize: 16, color: Colors.grey[700]),
               ),
               SizedBox(height: 30),
@@ -284,7 +312,7 @@ class DetailScreenState extends State<DetailScreen> {
                 child: isLoadingImage
                     ? CircularProgressIndicator()
                     : imagePath != null
-                        ? Image.file(File(imagePath!))
+                        ? _buildImage(imagePath!)
                         : Text('No image found'),
               ),
             ],
@@ -292,6 +320,46 @@ class DetailScreenState extends State<DetailScreen> {
         ),
       ),
     );
+  }
+
+  Widget _buildImage(String path) {
+    try {
+      if (path.startsWith('http')) {
+        // It's a Firebase URL
+        return Image.network(
+          path,
+          height: 200,
+          fit: BoxFit.cover,
+          loadingBuilder: (context, child, loadingProgress) {
+            if (loadingProgress == null) return child;
+            return Center(child: CircularProgressIndicator());
+          },
+          errorBuilder: (context, error, stackTrace) {
+            print('Error loading network image: $error');
+            return Text('Failed to load image');
+          },
+        );
+      } else {
+        // It's a local file
+        final file = File(path);
+        if (file.existsSync()) {
+          return Image.file(
+            file,
+            height: 200,
+            fit: BoxFit.cover,
+            errorBuilder: (context, error, stackTrace) {
+              print('Error loading local image: $error');
+              return Text('Failed to load image');
+            },
+          );
+        } else {
+          return Text('Image file not found');
+        }
+      }
+    } catch (e) {
+      print('Error building image: $e');
+      return Text('Error loading image');
+    }
   }
 }
 
