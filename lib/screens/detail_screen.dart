@@ -37,19 +37,7 @@ class DetailScreenState extends State<DetailScreen> {
     });
 
     try {
-      // First try to get local image
-      String? localPath = await taskController.getLocalImage(widget.task.id);
-      
-      if (localPath != null) {
-        print('Found local image: $localPath');
-        setState(() {
-          imagePath = localPath;
-          isLoadingImage = false;
-        });
-        return;
-      }
-
-      // If local image not available, use base64 data
+      // Directly use base64 data from Firestore
       if (widget.task.imageBase64 != null) {
         print('Using base64 image data');
         setState(() {

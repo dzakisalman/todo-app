@@ -148,34 +148,6 @@ class TaskController extends GetxController {
     }
   }
 
-  Future<void> _saveLocalImage(String taskId, String imagePath) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final key = 'image_$taskId';
-      await prefs.setString(key, imagePath);
-      print('Local image saved for task $taskId: $imagePath');
-    } catch (e) {
-      print('Error saving local image: $e');
-    }
-  }
-
-  Future<String?> getLocalImage(String taskId) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final key = 'image_$taskId';
-      final imagePath = prefs.getString(key);
-      print('Retrieved local image for task $taskId: $imagePath');
-      
-      if (imagePath != null && File(imagePath).existsSync()) {
-        return imagePath;
-      }
-      return null;
-    } catch (e) {
-      print('Error getting local image: $e');
-      return null;
-    }
-  }
-
   Future<void> addTask(TaskModel task) async {
     try {
       await _ensureAuthenticated();
@@ -205,10 +177,6 @@ class TaskController extends GetxController {
 
   Future<String?> uploadTaskImage(File imageFile, String taskId) async {
     try {
-      // Save local path first
-      await _saveLocalImage(taskId, imageFile.path);
-      print('Saved local image path: ${imageFile.path}');
-      
       // Read and compress the image
       final bytes = await imageFile.readAsBytes();
       final image = img.decodeImage(bytes);
@@ -247,11 +215,6 @@ class TaskController extends GetxController {
       final task = _tasks[index];
       try {
         await _firebaseService.deleteTask(task.id);
-
-        // Remove local image
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.remove('image_${task.id}');
-
         update();
       } catch (e) {
         _error = 'Error removing task: $e';
