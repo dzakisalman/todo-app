@@ -1,5 +1,6 @@
 import 'dart:core';
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
@@ -48,11 +49,11 @@ class DetailScreenState extends State<DetailScreen> {
         return;
       }
 
-      // If local image not available, use Firebase URL
-      if (widget.task.imageUrl != null) {
-        print('Using Firebase URL: ${widget.task.imageUrl}');
+      // If local image not available, use base64 data
+      if (widget.task.imageBase64 != null) {
+        print('Using base64 image data');
         setState(() {
-          imagePath = widget.task.imageUrl;
+          imagePath = widget.task.imageBase64;
           isLoadingImage = false;
         });
       } else {
@@ -173,7 +174,7 @@ class DetailScreenState extends State<DetailScreen> {
         title: widget.task.title,
         description: widget.task.description,
         time: newTime,
-        imageUrl: widget.task.imageUrl,
+        imageBase64: widget.task.imageBase64,
         isCompleted: widget.task.isCompleted,
       );
 
@@ -322,42 +323,26 @@ class DetailScreenState extends State<DetailScreen> {
     );
   }
 
-  Widget _buildImage(String path) {
+  Widget _buildImage(String? imageData) {
+    if (imageData == null) {
+      return Text('No image available');
+    }
+
     try {
-      if (path.startsWith('http')) {
-        // It's a Firebase URL
-        return Image.network(
-          path,
-          height: 200,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Center(child: CircularProgressIndicator());
-          },
-          errorBuilder: (context, error, stackTrace) {
-            print('Error loading network image: $error');
-            return Text('Failed to load image');
-          },
-        );
-      } else {
-        // It's a local file
-        final file = File(path);
-        if (file.existsSync()) {
-          return Image.file(
-            file,
-            height: 200,
-            fit: BoxFit.cover,
-            errorBuilder: (context, error, stackTrace) {
-              print('Error loading local image: $error');
-              return Text('Failed to load image');
-            },
-          );
-        } else {
-          return Text('Image file not found');
-        }
-      }
+      // Convert base64 to bytes
+      final imageBytes = base64Decode(imageData);
+      
+      return Image.memory(
+        imageBytes,
+        height: 200,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          print('Error loading image: $error');
+          return Text('Failed to load image');
+        },
+      );
     } catch (e) {
-      print('Error building image: $e');
+      print('Error decoding image: $e');
       return Text('Error loading image');
     }
   }

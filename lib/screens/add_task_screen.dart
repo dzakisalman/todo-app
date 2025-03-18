@@ -252,27 +252,23 @@ class AddTaskScreenState extends State<AddTaskScreen> {
       selectedTime.minute,
     );
 
-    String? imageUrl;
+    String? imageBase64;
     final String taskId = DateTime.now().toString();
 
     if (_selectedImage != null) {
-      try {
-        // Upload image and get Firebase URL
-        imageUrl = await taskController.uploadTaskImage(_selectedImage!, taskId);
-      } catch (e) {
-        print('Error uploading image: $e');
-      }
+      imageBase64 = await taskController.uploadTaskImage(_selectedImage!, taskId);
     }
 
-    final newTask = TaskModel(
+    final task = TaskModel(
       id: taskId,
       title: titleController.text,
       description: descriptionController.text,
       time: taskTime,
-      imageUrl: imageUrl,
+      imageBase64: imageBase64,
+      isCompleted: false,
     );
 
-    await taskController.addTask(newTask);
+    await taskController.addTask(task);
     Get.back();
   }
 

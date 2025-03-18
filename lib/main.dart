@@ -3,34 +3,49 @@ import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'firebase_options.dart';
 
 import 'controllers/task_controller.dart';
 import 'screens/completion_screen.dart';
 import 'screens/home_screen.dart';
 
-void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await SharedPreferences.getInstance();
-  await Firebase.initializeApp();
-  
-  // Initialize App Check
-  await FirebaseAppCheck.instance.activate(
-    webProvider: ReCaptchaV3Provider('recaptcha-v3-site-key'),
-    androidProvider: AndroidProvider.debug,
-    appleProvider: AppleProvider.appAttest,
-  );
-
-  // Initialize Firebase Auth with anonymous sign in
+Future<void> initializeFirebase() async {
   try {
-    await FirebaseAuth.instance.signInAnonymously();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
+
+    // Configure Firestore settings
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+      cacheSizeBytes: Settings.CACHE_SIZE_UNLIMITED,
+    );
+
+    // Initialize Firebase Auth with anonymous sign in
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        final userCredential = await FirebaseAuth.instance.signInAnonymously();
+        print('Signed in anonymously with user: ${userCredential.user?.uid}');
+      }
+    } catch (e) {
+      print('Error signing in anonymously: $e');
+    }
   } catch (e) {
-    print('Error signing in anonymously: $e');
+    print('Error initializing Firebase: $e');
   }
+}
 
-  Get.put(TaskController());
-
-  runApp(MyApp());
+void main() async {
+  try {
+    WidgetsFlutterBinding.ensureInitialized();
+    await SharedPreferences.getInstance();
+    await initializeFirebase();
+    Get.put(TaskController());
+    runApp(MyApp());
+  } catch (e) {
+    print('Error in main: $e');
+  }
 }
 
 class MyApp extends StatelessWidget {

@@ -1,0 +1,2 @@
+C:/Users/USER/Documents/KULIAH/Semester 6/todo_get/todo-app/android/app/.cxx/RelWithDebInfo/1l1t2k51/x86/CMakeFiles/edit_cache.dir
+C:/Users/USER/Documents/KULIAH/Semester 6/todo_get/todo-app/android/app/.cxx/RelWithDebInfo/1l1t2k51/x86/CMakeFiles/rebuild_cache.dir

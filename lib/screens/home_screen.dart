@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import 'dart:convert';
 
 import '../controllers/task_controller.dart';
 import 'add_task_screen.dart';
@@ -404,14 +405,14 @@ class HomeScreen extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (task.imageUrl != null)
+                      if (task.imageBase64 != null)
                         Container(
                           width: 50,
                           height: 50,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(8),
                             image: DecorationImage(
-                              image: NetworkImage(task.imageUrl!),
+                              image: MemoryImage(base64Decode(task.imageBase64!)),
                               fit: BoxFit.cover,
                             ),
                           ),

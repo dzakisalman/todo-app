@@ -5,7 +5,7 @@ class TaskModel {
   final String title;
   final String description;
   final DateTime time;
-  final String? imageUrl;
+  final String? imageBase64;
   final bool isCompleted;
 
   TaskModel({
@@ -13,7 +13,7 @@ class TaskModel {
     required this.title,
     required this.description,
     required this.time,
-    this.imageUrl,
+    this.imageBase64,
     this.isCompleted = false,
   });
 
@@ -23,7 +23,7 @@ class TaskModel {
       'title': title,
       'description': description,
       'time': Timestamp.fromDate(time),
-      'imageUrl': imageUrl,
+      'imageBase64': imageBase64,
       'isCompleted': isCompleted,
     };
   }
@@ -34,7 +34,7 @@ class TaskModel {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       time: (map['time'] as Timestamp).toDate(),
-      imageUrl: map['imageUrl'],
+      imageBase64: map['imageBase64'],
       isCompleted: map['isCompleted'] ?? false,
     );
   }

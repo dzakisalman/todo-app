@@ -7,6 +7,8 @@ import 'package:get/get.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:path_provider/path_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:image/image.dart' as img;
 
 import '../models/task_model.dart';
 import '../screens/completion_screen.dart';
@@ -59,27 +61,69 @@ class TaskController extends GetxController {
   }
 
   TaskController() {
-    _loadTasks();
+    _initializeController();
+  }
+
+  Future<void> _initializeController() async {
+    try {
+      _isLoading = true;
+      _error = '';
+      update();
+
+      // Try to use existing auth first
+      if (FirebaseAuth.instance.currentUser == null) {
+        try {
+          // Try anonymous sign in
+          final userCredential = await FirebaseAuth.instance.signInAnonymously();
+          print('Successfully signed in anonymously: ${userCredential.user?.uid}');
+        } catch (e) {
+          print('Error signing in anonymously: $e');
+          _error = 'Failed to sign in: $e';
+          _isLoading = false;
+          update();
+          return;
+        }
+      } else {
+        print('Using existing auth: ${FirebaseAuth.instance.currentUser?.uid}');
+      }
+
+      // Start listening to tasks
+      _loadTasks();
+    } catch (e) {
+      print('Error initializing controller: $e');
+      _error = 'Error initializing app: $e';
+      _isLoading = false;
+      update();
+    }
   }
 
   void _loadTasks() {
-    _isLoading = true;
-    _error = '';
-    update();
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        throw Exception('Not authenticated');
+      }
 
-    _firebaseService.getTasks().listen(
-      (tasks) {
-        _tasks = tasks;
-        _isLoading = false;
-        update();
-      },
-      onError: (error) {
-        _error = 'Error loading tasks: $error';
-        _isLoading = false;
-        _tasks.clear();
-        update();
-      },
-    );
+      _firebaseService.getTasks().listen(
+        (tasks) {
+          _tasks = tasks;
+          _isLoading = false;
+          _error = '';
+          update();
+        },
+        onError: (error) {
+          print('Error loading tasks: $error');
+          _error = 'Failed to load tasks: $error';
+          _isLoading = false;
+          _tasks.clear();
+          update();
+        },
+      );
+    } catch (e) {
+      print('Error in _loadTasks: $e');
+      _error = 'Error loading tasks: $e';
+      _isLoading = false;
+      update();
+    }
   }
 
   Future<void> toggleTaskCompletion(int index) async {
@@ -90,7 +134,7 @@ class TaskController extends GetxController {
         title: task.title,
         description: task.description,
         time: task.time,
-        imageUrl: task.imageUrl,
+        imageBase64: task.imageBase64,
         isCompleted: !task.isCompleted,
       );
       
@@ -133,19 +177,29 @@ class TaskController extends GetxController {
   }
 
   Future<void> addTask(TaskModel task) async {
-    if (task.title.isEmpty) {
-      _error = 'Title cannot be empty';
-      update();
-      return;
-    }
-
     try {
-      // Save to Firestore
+      await _ensureAuthenticated();
       await _firebaseService.addTask(task);
+      _error = '';
       update();
     } catch (e) {
-      _error = 'Error adding task: $e';
+      print('Error adding task: $e');
+      _error = 'Failed to add task: $e';
       update();
+      throw e;
+    }
+  }
+
+  Future<void> _ensureAuthenticated() async {
+    try {
+      if (FirebaseAuth.instance.currentUser == null) {
+        // Try anonymous sign in without signing out first
+        final userCredential = await FirebaseAuth.instance.signInAnonymously();
+        print('New anonymous auth: ${userCredential.user?.uid}');
+      }
+    } catch (e) {
+      print('Error in authentication: $e');
+      throw Exception('Authentication failed: $e');
     }
   }
 
@@ -155,13 +209,34 @@ class TaskController extends GetxController {
       await _saveLocalImage(taskId, imageFile.path);
       print('Saved local image path: ${imageFile.path}');
       
-      // Then upload to Firebase Storage
-      final String? firebaseUrl = await _firebaseService.uploadImage(imageFile, taskId);
-      print('Uploaded to Firebase, got URL: $firebaseUrl');
+      // Read and compress the image
+      final bytes = await imageFile.readAsBytes();
+      final image = img.decodeImage(bytes);
+      if (image == null) {
+        throw Exception('Failed to decode image');
+      }
+
+      // Resize image if too large (max 800x800)
+      img.Image resizedImage = image;
+      if (image.width > 800 || image.height > 800) {
+        resizedImage = img.copyResize(
+          image,
+          width: image.width > image.height ? 800 : null,
+          height: image.height >= image.width ? 800 : null,
+        );
+      }
+
+      // Compress to JPG with quality 70
+      final compressedBytes = img.encodeJpg(resizedImage, quality: 70);
       
-      return firebaseUrl;
+      // Convert to base64
+      final base64String = base64Encode(compressedBytes);
+      print('Image converted to base64 (length: ${base64String.length})');
+      
+      return base64String;
     } catch (e) {
-      _error = 'Error uploading image: $e';
+      print('Error processing image: $e');
+      _error = 'Error processing image: $e';
       update();
       return null;
     }
@@ -171,10 +246,6 @@ class TaskController extends GetxController {
     if (index >= 0 && index < _tasks.length) {
       final task = _tasks[index];
       try {
-        // Remove from Firestore and Storage
-        if (task.imageUrl != null) {
-          await _firebaseService.deleteImage(task.imageUrl!);
-        }
         await _firebaseService.deleteTask(task.id);
 
         // Remove local image
@@ -190,9 +261,19 @@ class TaskController extends GetxController {
   }
 
   Future<void> retryLoadTasks() async {
-    _loadTasks();
-    _error = '';
-    update();
+    try {
+      _error = '';
+      _isLoading = true;
+      update();
+      
+      // Try to authenticate without signing out first
+      await _ensureAuthenticated();
+      _loadTasks();
+    } catch (e) {
+      _error = 'Error retrying: $e';
+      _isLoading = false;
+      update();
+    }
   }
 
   void clearTimeFilter() {
